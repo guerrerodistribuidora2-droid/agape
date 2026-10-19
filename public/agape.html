@@ -237,7 +237,12 @@
       render(); return;
     }
     const gender = event.target.closest('[data-gender]');
-    if (gender) { state.gender = gender.dataset.gender; render(); return; }
+    if (gender) {
+      saveFields();
+      state.gender = gender.dataset.gender;
+      formHost.querySelectorAll('[data-gender]').forEach((button) => button.classList.toggle('selected', button.dataset.gender === state.gender));
+      return;
+    }
     const payment = event.target.closest('[data-payment]');
     if (payment) { state.payment = payment.dataset.payment; render(); return; }
     if (event.target.closest('[data-next]')) {
@@ -251,7 +256,14 @@
   });
 
   formHost.addEventListener('input', (event) => {
-    if (event.target.name === 'terms') { state.terms = event.target.checked; render(); }
+    const field = event.target;
+    if (field.name === 'terms') {
+      state.terms = field.checked;
+      const next = formHost.querySelector('[data-next]');
+      if (next) next.disabled = !state.terms;
+      return;
+    }
+    if (['name', 'age', 'phone', 'social', 'intention'].includes(field.name)) state[field.name] = field.value;
   });
 
   document.querySelector('.menu-toggle').addEventListener('click', (event) => {
