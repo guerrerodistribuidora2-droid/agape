@@ -13,7 +13,7 @@ export async function GET() {
   const { results } = await env.DB.prepare(
     `SELECT id, title, venue, description, event_date, arrival_time, start_time,
             min_age, max_age, women_capacity, men_capacity,
-            women_price_cents, men_price_cents
+            women_price_cents, men_price_cents, image_key
        FROM events
       WHERE status = 'published' AND event_date >= ?
       ORDER BY event_date ASC, start_time ASC`,
@@ -35,6 +35,7 @@ export async function GET() {
     menCapacity: row.men_capacity,
     womenPriceCents: row.women_price_cents,
     menPriceCents: row.men_price_cents,
+    imageUrl: typeof row.image_key === "string" ? `/api/public/events/media/${row.id}` : null,
   }));
 
   return Response.json({ events }, { headers: { "Cache-Control": "no-store" } });

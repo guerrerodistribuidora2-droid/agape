@@ -18,14 +18,15 @@ type EventRecord = {
   womenPriceCents: number;
   menPriceCents: number;
   status: "draft" | "published" | "archived";
+  imageUrl: string | null;
 };
 
-type EventDraft = Omit<EventRecord, "id" | "status"> & { status: "draft" | "published" };
+type EventDraft = Omit<EventRecord, "id" | "status" | "imageUrl"> & { status: "draft" | "published"; imageKey: string | null };
 
 const emptyDraft: EventDraft = {
   title: "", venue: "Quito, Ecuador", description: "", eventDate: "", arrivalTime: "19:00",
   startTime: "19:30", minAge: 30, maxAge: 45, womenCapacity: 20, menCapacity: 20,
-  womenPriceCents: 0, menPriceCents: 0, status: "draft",
+  womenPriceCents: 0, menPriceCents: 0, status: "draft", imageKey: null,
 };
 
 const dateLabel = (value: string) => new Intl.DateTimeFormat("es-EC", {
@@ -46,6 +47,8 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
   const [editingId, setEditingId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const loadEvents = useCallback(async () => {
     setLoading(true);
@@ -79,13 +82,18 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
   function createEvent() {
     setEditingId(null);
     setDraft(emptyDraft);
+    setImageFile(null);
+    setImagePreview(null);
     setModalOpen(true);
   }
 
   function editEvent(event: EventRecord) {
     setEditingId(event.id);
     const { id: _id, ...rest } = event;
-    setDraft({ ...rest, status: event.status === "published" ? "published" : "draft" });
+    const { imageUrl, ...fields } = rest;
+    setDraft({ ...fields, imageKey: imageUrl ? event.id : null, status: event.status === "published" ? "published" : "draft" });
+    setImageFile(null);
+    setImagePreview(imageUrl);
     setModalOpen(true);
   }
 
@@ -93,18 +101,23 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
     event.preventDefault();
     setSaving(true);
     setMessage("");
+    const eventId = editingId || crypto.randomUUID();
     const payload = {
+      id: eventId,
       ...draft,
+      imageKey: imageFile ? eventId : draft.imageKey,
       minAge: Number(draft.minAge), maxAge: Number(draft.maxAge),
       womenCapacity: Number(draft.womenCapacity), menCapacity: Number(draft.menCapacity),
-      womenPriceCents: Math.round(Number(draft.womenPriceCents) * 100),
-      menPriceCents: Math.round(Number(draft.menPriceCents) * 100),
+      womenPriceCents: Number(draft.womenPriceCents),
+      menPriceCents: Number(draft.menPriceCents),
     };
     try {
+      const form = new FormData();
+      form.append("payload", JSON.stringify(payload));
+      if (imageFile) form.append("image", imageFile);
       const response = await fetch("/api/admin/events", {
         method: editingId ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingId ? { ...payload, id: editingId } : payload),
+        body: form,
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No se pudo guardar el evento.");
@@ -133,7 +146,7 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
   return (
     <main className="admin-app">
       <aside className="admin-sidebar">
-        <a className="admin-logo" href="/" aria-label="Volver a Ágape"><span>Á</span><b>ÁGAPE<small>CONEXIÓN HUMANA REAL</small></b></a>
+        <a className="admin-logo" href="/" aria-label="Volver a Ágape"><img src="/agape-logo.png" alt="Ágape · Conexión humana real" /></a>
         <div className="sidebar-caption">GESTIÓN</div>
         <a className="sidebar-link active" href="#eventos"><span>◫</span> Eventos</a>
         <a className="sidebar-link" href="#ayuda"><span>◇</span> Guía rápida</a>
@@ -190,6 +203,7 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
           <label>Precio mujeres · USD<input required type="number" min="0" step="0.01" value={draft.womenPriceCents / 100} onChange={(e) => setDraft({ ...draft, womenPriceCents: Math.round(Number(e.target.value) * 100) })} /></label>
           <label>Precio hombres · USD<input required type="number" min="0" step="0.01" value={draft.menPriceCents / 100} onChange={(e) => setDraft({ ...draft, menPriceCents: Math.round(Number(e.target.value) * 100) })} /></label>
           <label className="wide-field">Descripción<textarea rows={3} maxLength={500} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="Cuenta en pocas líneas cómo será la experiencia." /></label>
+          <div className="event-image-field wide-field"><span>Foto del evento</span><div className="event-image-control">{imagePreview ? <img src={imagePreview} alt="Vista previa de la portada del evento" /> : <div className="event-image-placeholder"><b>＋</b><small>La portada aparecerá aquí</small></div>}<div className="event-image-actions"><label className="image-upload-button">{imageFile || imagePreview ? "Cambiar foto" : "Subir foto"}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) { setMessage("Elige una foto JPG, PNG o WebP de máximo 5 MB."); e.currentTarget.value = ""; return; } setMessage(""); setImageFile(file); setImagePreview(URL.createObjectURL(file)); }} /></label>{imagePreview && <button type="button" className="image-remove-button" onClick={() => { setImageFile(null); setImagePreview(null); setDraft({ ...draft, imageKey: null }); }}>Quitar</button>}<small>JPG, PNG o WebP · máximo 5 MB · horizontal, ideal 1600 × 1000 px</small></div></div></div>
           <label className="status-choice wide-field"><span>Visibilidad</span><select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as EventDraft["status"] })}><option value="draft">Guardar como borrador</option><option value="published">Publicar en el sitio</option></select></label>
           </div>
           <div className="modal-note"><span>✦</span> Al publicar, el evento se mostrará en el sitio público de Ágape.</div>

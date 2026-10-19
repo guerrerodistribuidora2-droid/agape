@@ -18,6 +18,7 @@ type EventPayload = {
   womenPriceCents: number;
   menPriceCents: number;
   status: "draft" | "published";
+  imageKey: string | null;
 };
 
 async function authorized() {
@@ -30,7 +31,7 @@ function sameOrigin(request: Request) {
   return !origin || new URL(origin).origin === new URL(request.url).origin;
 }
 
-function parsePayload(value: unknown): EventPayload | null {
+function parsePayload(value: unknown, id: string): EventPayload | null {
   if (!value || typeof value !== "object") return null;
   const data = value as Record<string, unknown>;
   const text = (key: string, max: number) =>
@@ -52,6 +53,7 @@ function parsePayload(value: unknown): EventPayload | null {
   const womenPriceCents = number("womenPriceCents", 0, 10000000);
   const menPriceCents = number("menPriceCents", 0, 10000000);
   const status = data.status === "published" ? "published" : data.status === "draft" ? "draft" : null;
+  const imageKey = data.imageKey === null || data.imageKey === undefined ? null : data.imageKey === id ? id : undefined;
   const validDate = /^\d{4}-\d{2}-\d{2}$/.test(eventDate) && !Number.isNaN(Date.parse(`${eventDate}T12:00:00Z`));
   const validTime = (time: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(time);
 
@@ -59,13 +61,13 @@ function parsePayload(value: unknown): EventPayload | null {
     !title || !venue || !validDate || !validTime(arrivalTime) || !validTime(startTime) ||
     minAge === null || maxAge === null || minAge > maxAge ||
     womenCapacity === null || menCapacity === null || womenPriceCents === null ||
-    menPriceCents === null || !status
+    menPriceCents === null || !status || imageKey === undefined
   ) return null;
 
   return {
     title, venue, description, eventDate, arrivalTime, startTime,
     minAge, maxAge, womenCapacity, menCapacity,
-    womenPriceCents, menPriceCents, status,
+    womenPriceCents, menPriceCents, status, imageKey,
   };
 }
 
@@ -74,8 +76,39 @@ function values(payload: EventPayload) {
     payload.title, payload.venue, payload.description, payload.eventDate,
     payload.arrivalTime, payload.startTime, payload.minAge, payload.maxAge,
     payload.womenCapacity, payload.menCapacity, payload.womenPriceCents,
-    payload.menPriceCents, payload.status,
+    payload.menPriceCents, payload.status, payload.imageKey,
   ];
+}
+
+async function readSubmission(request: Request) {
+  if (!(request.headers.get("content-type") || "").includes("multipart/form-data")) {
+    return { body: await request.json().catch(() => null) as Record<string, unknown> | null, image: null as File | null };
+  }
+  const form = await request.formData();
+  const body = JSON.parse(String(form.get("payload") || "null")) as Record<string, unknown> | null;
+  const file = form.get("image");
+  return { body, image: file instanceof File && file.size ? file : null };
+}
+
+const maxImageBytes = 5 * 1024 * 1024;
+const acceptedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+async function storeImage(image: File, id: string) {
+  if (!acceptedImageTypes.has(image.type) || image.size > maxImageBytes) return "invalid";
+  const bytes = new Uint8Array(await image.slice(0, 12).arrayBuffer());
+  const png = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+  const jpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  const webp = String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
+  if (!(image.type === "image/png" && png) && !(image.type === "image/jpeg" && jpeg) && !(image.type === "image/webp" && webp)) return "invalid";
+  if (!env.BUCKET) return "unavailable";
+  await env.BUCKET.put(`${id}/cover`, image.stream(), {
+    httpMetadata: { contentType: image.type, cacheControl: "public, max-age=3600" },
+  });
+  return `${id}/cover`;
+}
+
+function eventImageUrl(key: unknown) {
+  return typeof key === "string" && key ? `/api/public/events/media/${key.split("/")[0]}` : null;
 }
 
 export async function GET() {
@@ -85,7 +118,7 @@ export async function GET() {
   const { results } = await env.DB.prepare(
     `SELECT id, title, venue, description, event_date, arrival_time, start_time,
             min_age, max_age, women_capacity, men_capacity,
-            women_price_cents, men_price_cents, status, created_at, updated_at
+            women_price_cents, men_price_cents, status, image_key, created_at, updated_at
        FROM events ORDER BY event_date ASC, start_time ASC`,
   ).all();
   const events = results.map((row) => ({
@@ -93,7 +126,7 @@ export async function GET() {
     eventDate: row.event_date, arrivalTime: row.arrival_time, startTime: row.start_time,
     minAge: row.min_age, maxAge: row.max_age, womenCapacity: row.women_capacity,
     menCapacity: row.men_capacity, womenPriceCents: row.women_price_cents,
-    menPriceCents: row.men_price_cents, status: row.status,
+    menPriceCents: row.men_price_cents, status: row.status, imageUrl: eventImageUrl(row.image_key),
     createdAt: row.created_at, updatedAt: row.updated_at,
   }));
   return Response.json({ events }, { headers: { "Cache-Control": "no-store" } });
@@ -104,14 +137,21 @@ export async function POST(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: "Origen no permitido." }, { status: 403 });
   if (!env.DB) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
 
-  const payload = parsePayload(await request.json().catch(() => null));
+  const { body, image } = await readSubmission(request);
+  const id = typeof body?.id === "string" && /^[0-9a-f-]{36}$/i.test(body.id) ? body.id : crypto.randomUUID();
+  const payload = parsePayload(body, id);
   if (!payload) return Response.json({ error: "Revisa los campos del evento." }, { status: 400 });
-  const id = crypto.randomUUID();
+  if (image) {
+    const stored = await storeImage(image, id);
+    if (stored === "invalid") return Response.json({ error: "La imagen debe ser JPG, PNG o WebP y pesar máximo 5 MB." }, { status: 400 });
+    if (stored === "unavailable") return Response.json({ error: "El almacenamiento de imágenes no está disponible." }, { status: 503 });
+    payload.imageKey = id;
+  }
   await env.DB.prepare(
     `INSERT INTO events (id, title, venue, description, event_date, arrival_time,
       start_time, min_age, max_age, women_capacity, men_capacity,
-      women_price_cents, men_price_cents, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      women_price_cents, men_price_cents, status, image_key)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(id, ...values(payload)).run();
   return Response.json({ id }, { status: 201 });
 }
@@ -121,16 +161,24 @@ export async function PUT(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: "Origen no permitido." }, { status: 403 });
   if (!env.DB) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
 
-  const body = await request.json().catch(() => null) as (Record<string, unknown> | null);
-  const id = typeof body?.id === "string" ? body.id : "";
-  const payload = parsePayload(body);
+  const { body, image } = await readSubmission(request);
+  const id = typeof body?.id === "string" && /^[0-9a-f-]{36}$/i.test(body.id) ? body.id : "";
+  const payload = id ? parsePayload(body, id) : null;
   if (!id || !payload) return Response.json({ error: "Revisa los campos del evento." }, { status: 400 });
+  const previous = await env.DB.prepare("SELECT image_key FROM events WHERE id = ?").bind(id).first<{ image_key: string | null }>();
+  if (image) {
+    const stored = await storeImage(image, id);
+    if (stored === "invalid") return Response.json({ error: "La imagen debe ser JPG, PNG o WebP y pesar máximo 5 MB." }, { status: 400 });
+    if (stored === "unavailable") return Response.json({ error: "El almacenamiento de imágenes no está disponible." }, { status: 503 });
+    payload.imageKey = id;
+  }
   const result = await env.DB.prepare(
     `UPDATE events SET title = ?, venue = ?, description = ?, event_date = ?,
       arrival_time = ?, start_time = ?, min_age = ?, max_age = ?, women_capacity = ?,
       men_capacity = ?, women_price_cents = ?, men_price_cents = ?, status = ?,
-      updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      image_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
   ).bind(...values(payload), id).run();
   if (!result.meta.changes) return Response.json({ error: "No se encontró el evento." }, { status: 404 });
+  if (previous?.image_key && payload.imageKey === null && env.BUCKET) await env.BUCKET.delete(previous.image_key);
   return Response.json({ ok: true });
 }

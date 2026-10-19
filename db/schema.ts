@@ -6,6 +6,7 @@ export const events = sqliteTable("events", {
   title: text("title").notNull(),
   venue: text("venue").notNull(),
   description: text("description").notNull().default(""),
+  imageKey: text("image_key"),
   eventDate: text("event_date").notNull(),
   arrivalTime: text("arrival_time").notNull(),
   startTime: text("start_time").notNull(),
