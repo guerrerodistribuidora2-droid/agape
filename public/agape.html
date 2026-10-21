@@ -98,6 +98,10 @@
     <style>
       .whatsapp-float{position:fixed;right:25px;bottom:24px;z-index:40;display:flex;align-items:center;gap:0;width:58px;height:58px;justify-content:center;border-radius:50%;background:#20c86a;color:#fff;box-shadow:0 10px 32px #0008;transition:transform .2s,box-shadow .2s;text-decoration:none}.whatsapp-float:hover{transform:translateY(-3px) scale(1.04);box-shadow:0 14px 38px #000a}.whatsapp-float svg{width:32px;height:32px;fill:currentColor}.whatsapp-float span{position:absolute;right:68px;white-space:nowrap;background:#171011;color:#f4e9dd;padding:10px 13px;border:1px solid #c49a434d;border-radius:999px;font:10px Onest,Arial,sans-serif;opacity:0;transform:translateX(5px);transition:opacity .2s,transform .2s;pointer-events:none}.whatsapp-float:hover span,.whatsapp-float:focus-visible span{opacity:1;transform:none}.whatsapp-float:focus-visible{outline:2px solid #e2bf70;outline-offset:4px}.event-art.has-photo{background:#10090b}.event-cover-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.event-art.has-photo:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#09050570 0%,transparent 36%,#09050599 100%);pointer-events:none}.event-art.has-photo .event-number,.event-art.has-photo .event-orbit-mini,.event-art.has-photo .event-symbol,.event-art.has-photo .event-art-caption{z-index:1}@media(max-width:650px){.whatsapp-float{right:17px;bottom:17px;width:53px;height:53px}.whatsapp-float svg{width:29px;height:29px}.whatsapp-float span{display:none}}@media(prefers-reduced-motion:reduce){.whatsapp-float,.whatsapp-float span{transition:none}}
     </style>
+    <style>
+      .cocktail-types,.drink-options{display:grid;gap:10px}.cocktail-types{grid-template-columns:repeat(2,minmax(0,1fr));margin:27px 0 23px}.cocktail-type,.drink-option{min-height:104px;border:1px solid #42292a;background:#1c0b0e;color:#e9ddd2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;transition:border-color .18s,background .18s}.cocktail-type span,.drink-option span{font-size:24px}.cocktail-type b,.drink-option b{font:500 13px var(--sans)}.cocktail-type:hover,.cocktail-type.selected,.drink-option:hover,.drink-option.selected{border-color:#d7b45f;background:#251216}.drink-options{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:8px}.drink-option{min-height:94px}.intention-choices .choice-card{min-height:76px;background:#1a090c;border-color:#42292a;color:#e8ddd3}.intention-icon{width:34px;flex:none;text-align:center;font-size:21px}.intention-choices .choice-card:hover,.intention-choices .choice-card.selected{background:#251216;border-color:#c49a43}.checkout-review{background:#16080a;border-color:#42292a;padding:14px 17px}.review-heading{display:flex;align-items:center;justify-content:space-between;margin-top:9px;font-size:10px;color:#c9b9ad}.review-heading button{border:0;background:none;color:#d7b45f;text-decoration:underline;font-size:9px}.review-value{font-size:11px;color:#f0e6db;padding:0 0 9px;border-bottom:1px solid #392529;line-height:1.5}.review-heading:first-child{margin-top:0}.price-box{background:linear-gradient(145deg,#23180f,#160c0b);border:1px solid #70552f;border-radius:12px;padding:17px 18px;margin:13px 0}.price-title{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #49311d;padding-bottom:11px;margin-bottom:10px;color:#eadfce;font-size:12px}.price-title>span{font-weight:600}.price-title small{display:inline-block;margin-top:4px;font-size:10px;font-weight:400;color:#ad9b8f}.price-title>b{font:500 22px var(--serif);color:#e7c980}.price-box>p{font-size:10px;color:#b7a99f;margin:0 0 7px}.price-row{display:flex;justify-content:space-between;color:#a99a91;font-size:10px;padding:3px 0}.price-row.total{color:#f0e6db;font-size:12px;font-weight:600;margin-top:3px}.coupon-field{margin-top:14px}.coupon-row{display:flex;gap:8px}.coupon-row input{flex:1;min-width:0}.coupon-row button{border:1px solid #8e6c35;background:transparent;color:#e1c57e;padding:0 15px}.coupon-message{display:block;color:#d8bd80;font-size:9px;margin-top:5px}.consent-row{margin:12px 0 15px}.consent-row input{width:14px;height:14px;flex:none}.consent-row a{color:#e4d8ce;text-decoration:underline;text-underline-offset:2px}.process-box{border:1px solid #73532e;border-radius:9px}.process-box>b{display:block;color:#e2c67f;font-size:12px;margin-bottom:6px}.process-box p{font-size:10px;line-height:1.55;margin:5px 0;color:#c7b7ac}.payment-note{text-align:center;color:#b7a69c;font-size:10px;line-height:1.5;margin:16px 0 0}.consent-next{min-width:250px;border-radius:999px;padding:15px 20px;letter-spacing:.13em}.consent-next:disabled{background:#80663c;color:#1c100d;opacity:.76}.booking-actions:has(.consent-next){margin-top:19px}.form-field input[name="cedula"]{letter-spacing:.08em}
+      @media(max-width:650px){.cocktail-types{margin:20px 0}.drink-options{grid-template-columns:repeat(2,minmax(0,1fr))}.drink-option{min-height:82px}.consent-next{min-width:0;max-width:72%;font-size:8px}.checkout-review{padding:11px}.price-box{padding:14px}.form-field input,.form-field select,.form-field textarea{font-size:16px}}
+    </style>
     <script>
       (() => {
         const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -123,7 +127,7 @@
   const toast = document.querySelector('.toast');
   const eventGrid = document.querySelector('.event-grid');
   let publishedEvents = [];
-  const state = { step: 1, date: '', name: '', age: '', gender: '', phone: '', social: '', intention: '', terms: false, payment: '' };
+  const state = { step: 1, date: '', name: '', age: '', gender: '', phone: '', email: '', social: '', cedula: '', cocktailType: '', cocktail: '', intention: '', terms: false, payment: '' };
   let toastTimer;
   const safe = (value) => String(value || '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -146,22 +150,58 @@
   }
 
   function profileStep() {
-    return `<div class="form-kicker">SOBRE TI</div><h2 id="booking-title">Cuéntanos quién viene.</h2><p class="form-intro">Estos campos son solo una muestra de la experiencia. No se guardan ni se envían.</p><label class="form-field"><span>NOMBRE Y APELLIDO</span><input name="name" autocomplete="name" placeholder="Tu nombre" value="${safe(state.name)}" /></label><div class="field-row"><label class="form-field"><span>EDAD</span><input name="age" inputmode="numeric" type="number" min="18" max="100" placeholder="Tu edad" value="${safe(state.age)}" /></label><div class="form-field"><span>VENGO COMO</span><div class="gender-options"><button type="button" class="gender-pill ${state.gender === 'Mujer' ? 'selected' : ''}" data-gender="Mujer">Mujer</button><button type="button" class="gender-pill ${state.gender === 'Hombre' ? 'selected' : ''}" data-gender="Hombre">Hombre</button><button type="button" class="gender-pill ${state.gender === 'Otro' ? 'selected' : ''}" data-gender="Otro">Otro</button></div></div></div><label class="form-field"><span>WHATSAPP DE CONTACTO</span><input name="phone" autocomplete="tel" inputmode="tel" placeholder="+593 · solo para gestionar la reserva" value="${safe(state.phone)}" /></label><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><button class="next-button" data-next>CONTINUAR <span>→</span></button></div>`;
+    return `<div class="form-kicker">TUS DATOS</div><h2 id="booking-title">Cuéntanos quién viene</h2><p class="form-intro">Fecha elegida: ${safe(eventSummary())}. Con esto reservamos tu cupo y cuidamos el balance de la noche.</p><label class="form-field"><span>¿CÓMO TE LLAMAS?</span><input name="name" autocomplete="name" placeholder="Nombre y apellido" value="${safe(state.name)}" /></label><div class="field-row"><label class="form-field"><span>EDAD</span><input name="age" inputmode="numeric" type="number" min="18" max="100" placeholder="Tu edad" value="${safe(state.age)}" /></label><div class="form-field"><span>VENGO COMO</span><div class="gender-options"><button type="button" class="gender-pill ${state.gender === 'Mujer' ? 'selected' : ''}" data-gender="Mujer">Mujer</button><button type="button" class="gender-pill ${state.gender === 'Hombre' ? 'selected' : ''}" data-gender="Hombre">Hombre</button><button type="button" class="gender-pill ${state.gender === 'Otro' ? 'selected' : ''}" data-gender="Otro">Otro</button></div></div></div><label class="form-field"><span>WHATSAPP</span><input name="phone" autocomplete="tel" inputmode="tel" placeholder="0991234567" value="${safe(state.phone)}" /></label><label class="form-field"><span>CORREO</span><input name="email" autocomplete="email" type="email" placeholder="tucorreo@mail.com" value="${safe(state.email)}" /></label><label class="form-field"><span>TU INSTAGRAM, FACEBOOK, LINKEDIN O TIKTOK</span><input name="social" placeholder="@usuario" value="${safe(state.social)}" /></label><label class="form-field"><span>CÉDULA</span><input name="cedula" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="1712345678" value="${safe(state.cedula)}" /></label><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><button class="next-button" data-next>CONTINUAR <span>→</span></button></div>`;
+  }
+
+  function eventSummary() {
+    const item = publishedEvents.find((event) => event.id === state.date);
+    if (!item) return 'noche elegida';
+    const date = new Intl.DateTimeFormat('es-EC', { dateStyle: 'full', timeZone: 'UTC' }).format(new Date(`${item.eventDate}T12:00:00Z`));
+    return `${date}, ${item.arrivalTime} · ${item.title}`;
+  }
+
+  function cocktailStep() {
+    const alcoholic = ['Mojito', 'Copa de vino', 'Cuba libre'];
+    const alcoholFree = ['Mojito sin alcohol', 'Limonada', 'Agua mineral'];
+    const drinks = state.cocktailType === 'alcohol' ? alcoholic : alcoholFree;
+    return `<div class="form-kicker">DE LA CASA</div><h2 id="booking-title">Tu cóctel de cortesía</h2><p class="form-intro">Lo tendremos listo cuando llegues. Va incluido en tu reserva.</p><div class="cocktail-types"><button type="button" class="cocktail-type ${state.cocktailType === 'alcohol' ? 'selected' : ''}" data-cocktail-type="alcohol"><span>🍸</span><b>Con alcohol</b></button><button type="button" class="cocktail-type ${state.cocktailType === 'sin-alcohol' ? 'selected' : ''}" data-cocktail-type="sin-alcohol"><span>🫧</span><b>Sin alcohol</b></button></div>${state.cocktailType ? `<div class="form-field"><span>ELIGE TU TRAGO</span><div class="drink-options">${drinks.map((drink) => `<button type="button" class="drink-option ${state.cocktail === drink ? 'selected' : ''}" data-cocktail="${safe(drink)}"><span>${drink === 'Mojito' ? '🌿' : drink === 'Copa de vino' ? '🍷' : drink === 'Cuba libre' ? '🥃' : drink === 'Limonada' ? '🍋' : drink === 'Agua mineral' ? '💧' : '🍃'}</span><b>${safe(drink)}</b></button>`).join('')}</div></div>` : ''}<div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><button class="next-button" data-next ${state.cocktail ? '' : 'disabled'}>CONTINUAR <span>→</span></button></div>`;
   }
 
   function intentionStep() {
-    return `<div class="form-kicker">TU INTENCIÓN</div><h2 id="booking-title">¿Con qué ganas llegas?</h2><p class="form-intro">El equipo revisa el perfil antes de confirmar cada lugar y así cuida el balance de la noche.</p><label class="form-field"><span>INSTAGRAM O FACEBOOK <small>(OPCIONAL)</small></span><input name="social" placeholder="@tuusuario o enlace" value="${safe(state.social)}" /></label><label class="form-field"><span>¿QUÉ TE GUSTARÍA ENCONTRAR EN ESTA NOCHE?</span><textarea name="intention" rows="4" placeholder="Una buena conversación, conocer nuevas personas…">${safe(state.intention)}</textarea></label><div class="notice-box">En el sitio real, el equipo usa estos datos para revisar tu solicitud y contactarte sobre la reserva. Esta demo no transmite información.</div><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><button class="next-button" data-next>REVISAR SOLICITUD <span>→</span></button></div>`;
+    const choices = [ ['romantico', '💘', 'Algo romántico', 'Conocer a alguien con quien haya química'], ['amistades', '🤝', 'Nuevas amistades', 'Ampliar mi círculo, gente afín'], ['networking', '💼', 'Networking', 'Conectar con profesionales'], ['abierto', '✨', 'Estoy abierto/a', 'Lo que la noche traiga'] ];
+    return `<div class="form-kicker">SIN JUICIOS</div><h2 id="booking-title">¿Qué buscas esta noche?</h2><p class="form-intro">No hay respuesta correcta. Nos ayuda a armar mejor los grupos.</p><div class="choice-list intention-choices">${choices.map(([key, icon, title, description]) => `<button type="button" class="choice-card ${state.intention === key ? 'selected' : ''}" data-intention="${key}"><span class="intention-icon">${icon}</span><span class="choice-copy"><b>${title}</b><small>${description}</small></span></button>`).join('')}</div><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><button class="next-button" data-next ${state.intention ? '' : 'disabled'}>REVISAR SOLICITUD <span>→</span></button></div>`;
   }
 
   function reviewStep() {
     const selectedEvent = publishedEvents.find((event) => event.id === state.date);
-    const selectedLabel = selectedEvent ? `${selectedEvent.title} · ${selectedEvent.eventDate}` : 'Sin elegir';
-    return `<div class="form-kicker">VALIDACIÓN PREVIA</div><h2 id="booking-title">Un repaso antes de continuar.</h2><p class="form-intro">Así se prepara tu solicitud para que el equipo pueda validar el cupo.</p><div class="review-box"><div class="review-line"><span>Noche</span><b>${safe(selectedLabel)}</b></div><div class="review-line"><span>Nombre</span><b>${safe(state.name || '—')}</b></div><div class="review-line"><span>Edad</span><b>${safe(state.age || '—')}</b></div><div class="review-line"><span>Grupo</span><b>${safe(state.gender || '—')}</b></div><div class="review-line"><span>WhatsApp</span><b>${safe(state.phone || '—')}</b></div></div><div class="notice-box"><b>¿Qué sigue?</b> El equipo revisa cada solicitud y confirma si hay cupo. Tras la validación, se completa el pago para emitir tu pase personal con QR.</div><label class="checkbox-row"><input type="checkbox" name="terms" ${state.terms ? 'checked' : ''} /><span>Entiendo que las reservas se validan antes de confirmarse. (Vista de ejemplo)</span></label><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><button class="next-button" data-next ${state.terms ? '' : 'disabled'}>CONTINUAR <span>→</span></button></div>`;
+    const selectedLabel = selectedEvent ? eventSummary() : 'Sin elegir';
+    const configuredPrice = selectedEvent ? Number(state.gender === 'Hombre' ? selectedEvent.menPriceCents : selectedEvent.womenPriceCents || selectedEvent.menPriceCents || 0) : 0;
+    const totalCents = Math.max(0, configuredPrice);
+    const platformCents = totalCents ? 150 : 0;
+    const beforeTaxCents = Math.max(0, totalCents - platformCents);
+    const subtotalCents = Math.round(beforeTaxCents / 1.15);
+    const taxCents = beforeTaxCents - subtotalCents;
+    const money = (cents) => new Intl.NumberFormat('es-EC', { style: 'currency', currency: 'USD' }).format(cents / 100);
+    const intentionLabel = ({ romantico: 'Algo romántico', amistades: 'Nuevas amistades', networking: 'Networking', abierto: 'Estoy abierto/a' })[state.intention] || '—';
+    const maskedId = state.cedula ? `${state.cedula.slice(0, 2)}••••••${state.cedula.slice(-2)}` : '—';
+    return `<div class="form-kicker">PASO 5 DE 5 · REVISA TUS DATOS</div><h2 id="booking-title">Casi listo</h2><p class="form-intro">Aún no reservamos nada. Tu reserva se activa cuando eliges pagar con tarjeta o transferencia.</p><div class="review-box checkout-review"><div class="review-heading"><span>Fecha</span><button type="button" data-edit-step="1">Editar</button></div><div class="review-value">${safe(selectedLabel)}${selectedEvent ? ` · ${safe(selectedEvent.venue)}` : ''}</div><div class="review-heading"><span>A nombre de</span><button type="button" data-edit-step="2">Editar</button></div><div class="review-value">${safe(state.name)}, ${safe(state.age)}</div><div class="review-heading"><span>Cóctel</span><button type="button" data-edit-step="3">Editar</button></div><div class="review-value">${safe(state.cocktail || '—')}</div><div class="review-heading"><span>Buscas</span><button type="button" data-edit-step="4">Editar</button></div><div class="review-value">${safe(intentionLabel)}</div><div class="review-heading"><span>Contacto</span><button type="button" data-edit-step="2">Editar</button></div><div class="review-value">${safe(state.phone)} · ${safe(state.email)}</div><div class="review-heading"><span>Redes y cédula</span><button type="button" data-edit-step="2">Editar</button></div><div class="review-value">${safe(state.social || '—')} · ${safe(maskedId)}</div></div><div class="price-box"><div class="price-title"><span>Preventa<br /><small>Incluye cóctel de cortesía</small></span><b>${money(totalCents)}</b></div><p>Desglose del PVP (todo incluido):</p><div class="price-row"><span>Subtotal</span><b>${money(subtotalCents)}</b></div><div class="price-row"><span>IVA (15%)</span><b>${money(taxCents)}</b></div><div class="price-row"><span>Uso de plataforma</span><b>${money(platformCents)}</b></div><div class="price-row total"><span>Total a pagar</span><b>${money(totalCents)}</b></div></div><label class="form-field coupon-field"><span>¿TIENES UN CUPÓN?</span><div class="coupon-row"><input name="coupon" placeholder="Ingresa tu código" /><button type="button" data-coupon>Aplicar</button></div><small class="coupon-message" aria-live="polite"></small></label><label class="checkbox-row consent-row"><input type="checkbox" name="terms" ${state.terms ? 'checked' : ''} /><span>Autorizo el tratamiento de mis datos personales conforme a la <a href="https://agapecrh.com/privacidad" target="_blank" rel="noopener">política de privacidad</a> y los <a href="https://agapecrh.com/terminos" target="_blank" rel="noopener">términos</a> (LOPDP, Ecuador).</span></label><div class="notice-box process-box"><b>Cómo funciona</b><p>◆ Revisamos tu perfil para cuidar el balance y la calidad de la noche.</p><p>◆ Si tu perfil no aplica para esa fecha, te avisamos dentro de las próximas 2 horas y te devolvemos el 100% de tu pago.</p><p>◆ Si aplica, tu reserva con código QR llega directo a tu correo.</p></div><p class="payment-note">En el siguiente paso eliges tarjeta (Payphone) o transferencia.<br />Tu reserva se activa ahí, al registrar el pago.</p><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><button class="next-button consent-next" data-next ${state.terms ? '' : 'disabled'}>ESTOY DE ACUERDO · CONTINUAR AL PAGO</button></div>`;
   }
 
   function paymentStep() {
     const method = state.payment;
-    return `<div class="form-kicker">PAGO Y CONFIRMACIÓN</div><h2 id="booking-title">Tu pase, después de validar.</h2><p class="form-intro">En la experiencia real, el pago se habilita cuando el equipo confirma tu lugar y el precio de la edición.</p><div class="pay-box"><strong>Precio de la próxima edición</strong><p>Se anunciará junto con las fechas. El monto de esta demostración es solo informativo: no hay pedido ni checkout conectado.</p></div><div class="choice-list"><button class="choice-card ${method === 'tarjeta' ? 'selected' : ''}" type="button" data-payment="tarjeta"><span class="choice-radio"></span><span class="choice-copy"><b>Tarjeta · vista de ejemplo</b><small>El procesador real se conectará cuando compartas la configuración.</small></span></button><button class="choice-card ${method === 'transferencia' ? 'selected' : ''}" type="button" data-payment="transferencia"><span class="choice-radio"></span><span class="choice-copy"><b>Otra forma de pago · ejemplo</b><small>Los métodos disponibles dependen de la cuenta de Ágape.</small></span></button></div><div class="notice-box" style="margin-top:12px">Este botón solo muestra el cierre del recorrido. No contacta al procesador, no envía la solicitud y no realiza ningún cobro.</div><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><button class="next-button" data-finish>FINALIZAR DEMO <span>↗</span></button></div>`;
+    const total = selectedPriceCents();
+    return `<div class="form-kicker">SIGUIENTE PASO · MODO DEMO</div><h2 id="booking-title">Elige cómo pagar</h2><p class="form-intro">Tu reserva se activa al registrar el pago. Esta demostración no conecta con Payphone ni procesa transferencias.</p><div class="pay-box"><strong>Total a pagar · ${moneyFormat(total)}</strong><p>No hay pedido real ni se realizará ningún cobro.</p></div><div class="choice-list"><button class="choice-card ${method === 'tarjeta' ? 'selected' : ''}" type="button" data-payment="tarjeta"><span class="choice-radio"></span><span class="choice-copy"><b>Tarjeta de crédito o débito</b><small>Payphone · vista de ejemplo, sin conexión</small></span></button><button class="choice-card ${method === 'transferencia' ? 'selected' : ''}" type="button" data-payment="transferencia"><span class="choice-radio"></span><span class="choice-copy"><b>Transferencia bancaria</b><small>Datos de cuenta no conectados en esta demostración</small></span></button></div><div class="notice-box" style="margin-top:12px">Esta pantalla solo representa las opciones de pago. No envía la solicitud ni realiza ningún cobro.</div><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><button class="next-button" data-finish ${method ? '' : 'disabled'}>CONTINUAR <span>↗</span></button></div>`;
+  }
+
+  function selectedPriceCents() {
+    const selectedEvent = publishedEvents.find((event) => event.id === state.date);
+    if (!selectedEvent) return 0;
+    const cents = state.gender === 'Hombre' ? selectedEvent.menPriceCents : selectedEvent.womenPriceCents;
+    return Math.max(0, Number(cents || selectedEvent.menPriceCents || 0));
+  }
+
+  function moneyFormat(cents) {
+    return new Intl.NumberFormat('es-EC', { style: 'currency', currency: 'USD' }).format(cents / 100);
   }
 
   function doneStep() {
@@ -169,9 +209,9 @@
   }
 
   function render() {
-    progressLabel.textContent = state.step <= 5 ? `PASO ${state.step} DE 5` : 'DEMO COMPLETADA';
+    progressLabel.textContent = state.step <= 5 ? `PASO ${state.step} DE 5` : state.step === 6 ? 'PAGO · MODO DEMO' : 'RECORRIDO COMPLETADO';
     progressFill.style.width = `${Math.min(state.step, 5) * 20}%`;
-    formHost.innerHTML = state.step === 1 ? dateStep() : state.step === 2 ? profileStep() : state.step === 3 ? intentionStep() : state.step === 4 ? reviewStep() : state.step === 5 ? paymentStep() : doneStep();
+    formHost.innerHTML = state.step === 1 ? dateStep() : state.step === 2 ? profileStep() : state.step === 3 ? cocktailStep() : state.step === 4 ? intentionStep() : state.step === 5 ? reviewStep() : state.step === 6 ? paymentStep() : doneStep();
     const input = formHost.querySelector('input:not([type=checkbox]), textarea');
     if (input && state.step > 1) input.focus({ preventScroll: true });
   }
@@ -179,7 +219,7 @@
   function openBooking(date = '') {
     state.step = 1;
     state.date = date;
-    state.name = state.age = state.gender = state.phone = state.social = state.intention = state.payment = '';
+    state.name = state.age = state.gender = state.phone = state.email = state.social = state.cedula = state.cocktailType = state.cocktail = state.intention = state.payment = '';
     state.terms = false;
     render();
     if (!dialog.open) dialog.showModal();
@@ -207,7 +247,7 @@
   void loadPublishedEvents();
 
   function saveFields() {
-    for (const name of ['name', 'age', 'phone', 'social', 'intention']) {
+    for (const name of ['name', 'age', 'phone', 'email', 'social', 'cedula']) {
       const node = formHost.querySelector(`[name="${name}"]`);
       if (node) state[name] = node.value.trim();
     }
@@ -219,12 +259,15 @@
     saveFields();
     if (state.step === 1 && !state.date) return notify('Elige una noche de ejemplo para continuar.'), false;
     if (state.step === 2) {
-      if (!state.name || !state.age || !state.gender || !state.phone) return notify('Completa los campos obligatorios de ejemplo.'), false;
+      if (!state.name || !state.age || !state.gender || !state.phone || !state.email || !state.social || !state.cedula) return notify('Completa todos los campos obligatorios.'), false;
       if (Number(state.age) < 18 || Number(state.age) > 100) return notify('Ingresa una edad válida.'), false;
       if (state.phone.replace(/\D/g, '').length < 7) return notify('Revisa el número de contacto.'), false;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.email)) return notify('Revisa el correo electrónico.'), false;
+      if (!/^\d{10}$/.test(state.cedula.replace(/\D/g, ''))) return notify('Ingresa una cédula ecuatoriana de 10 dígitos.'), false;
     }
-    if (state.step === 3 && !state.intention) return notify('Cuéntanos brevemente con qué intención llegas.'), false;
-    if (state.step === 4 && !state.terms) return notify('Marca la casilla de ejemplo para continuar.'), false;
+    if (state.step === 3 && (!state.cocktailType || !state.cocktail)) return notify('Elige el tipo de cóctel y tu trago.'), false;
+    if (state.step === 4 && !state.intention) return notify('Elige qué buscas esta noche.'), false;
+    if (state.step === 5 && !state.terms) return notify('Acepta la política de privacidad y los términos para continuar.'), false;
     return true;
   }
 
@@ -243,6 +286,15 @@
       formHost.querySelectorAll('[data-gender]').forEach((button) => button.classList.toggle('selected', button.dataset.gender === state.gender));
       return;
     }
+    const cocktailType = event.target.closest('[data-cocktail-type]');
+    if (cocktailType) { state.cocktailType = cocktailType.dataset.cocktailType; state.cocktail = ''; render(); return; }
+    const cocktail = event.target.closest('[data-cocktail]');
+    if (cocktail) { state.cocktail = cocktail.dataset.cocktail; formHost.querySelectorAll('[data-cocktail]').forEach((button) => button.classList.toggle('selected', button.dataset.cocktail === state.cocktail)); const next = formHost.querySelector('[data-next]'); if (next) next.disabled = false; return; }
+    const intention = event.target.closest('[data-intention]');
+    if (intention) { state.intention = intention.dataset.intention; formHost.querySelectorAll('[data-intention]').forEach((button) => button.classList.toggle('selected', button.dataset.intention === state.intention)); const next = formHost.querySelector('[data-next]'); if (next) next.disabled = false; return; }
+    const edit = event.target.closest('[data-edit-step]');
+    if (edit) { state.terms = false; setStep(Number(edit.dataset.editStep)); return; }
+    if (event.target.closest('[data-coupon]')) { const message = formHost.querySelector('.coupon-message'); if (message) message.textContent = 'La validación de cupones estará disponible al conectar el sistema de reservas.'; return; }
     const payment = event.target.closest('[data-payment]');
     if (payment) { state.payment = payment.dataset.payment; render(); return; }
     if (event.target.closest('[data-next]')) {
@@ -250,7 +302,7 @@
       return;
     }
     if (event.target.closest('[data-back]')) { saveFields(); setStep(Math.max(1, state.step - 1)); return; }
-    if (event.target.closest('[data-finish]')) { setStep(6); return; }
+    if (event.target.closest('[data-finish]')) { if (state.payment) setStep(7); else notify('Elige un método de pago de ejemplo.'); return; }
     if (event.target.closest('[data-done]')) { dialog.close(); return; }
     if (event.target.closest('.notice-close')) event.target.closest('.event-notice').remove();
   });
@@ -263,7 +315,7 @@
       if (next) next.disabled = !state.terms;
       return;
     }
-    if (['name', 'age', 'phone', 'social', 'intention'].includes(field.name)) state[field.name] = field.value;
+    if (['name', 'age', 'phone', 'email', 'social', 'cedula'].includes(field.name)) state[field.name] = field.value;
   });
 
   document.querySelector('.menu-toggle').addEventListener('click', (event) => {
