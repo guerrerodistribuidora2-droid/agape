@@ -151,7 +151,7 @@
     contacto: `<div class="form-kicker">CONTACTO</div><h1>Hablemos</h1><p>Si tienes dudas sobre tu reserva, tu pase con QR o el pago, escríbenos y te respondemos en horario de oficina (Quito, GMT-5).</p><section class="info-card"><h2>Soporte de reservas</h2><p>Cambios de fecha, comprobantes de transferencia y reenvío de tu pase con código QR.</p><a href="mailto:eventosagape.ec@gmail.com">eventosagape.ec@gmail.com</a></section><section class="info-card"><h2>Alianzas y prensa</h2><p>Marcas, venues y medios: cuéntanos tu propuesta al mismo correo y la revisamos.</p><a href="https://www.instagram.com/agape.experiencias/" target="_blank" rel="noopener">@agape.experiencias en Instagram</a></section><a class="next-button info-cta" href="#noches" data-info-close>VER PRÓXIMAS NOCHES</a>`
   };
   let publishedEvents = [];
-  const state = { step: 1, date: '', name: '', age: '', gender: '', phone: '', email: '', social: '', cedula: '', cocktailType: '', cocktail: '', intention: '', terms: false, payment: '', orderRef: '', proofName: '', couponCode: '', couponDiscountCents: 0, siteContent: null };
+  const state = { step: 1, date: '', name: '', age: '', gender: '', phone: '', email: '', social: '', cedula: '', cocktailType: '', cocktail: '', intention: '', terms: false, payment: '', orderRef: '', uploadToken: '', proofName: '', proofFile: null, couponCode: '', couponDiscountCents: 0, siteContent: null };
   let toastTimer;
   const safe = (value) => String(value || '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -270,7 +270,7 @@
     const date = event ? new Intl.DateTimeFormat('es-EC', { dateStyle: 'full', timeZone: 'UTC' }).format(new Date(`${event.eventDate}T12:00:00Z`)) : state.date;
     const ref = state.orderRef || 'AG-—';
     const proof = state.proofName ? `<p class="proof-selected">Comprobante seleccionado: <b>${safe(state.proofName)}</b></p>` : '';
-    return `<div class="form-kicker">ORDEN · ${safe(ref)}</div><h2 id="booking-title">Orden ${safe(ref)}</h2><p class="order-status">PENDIENTE</p><div class="transfer-panel order-summary"><p>${safe(eventName)}<br /><small>${safe(date)} · ${safe(event?.arrivalTime || '')}</small></p><div class="order-line"><b>1× Venta · ${safe(state.gender)}</b><b>${moneyFormat(total)}</b></div><div class="order-line order-total"><b>Total</b><b>${moneyFormat(total)}</b></div></div><section class="transfer-panel"><h3>Paga con tarjeta</h3><p>Pago inmediato y seguro con Payphone (tarjetas de crédito y débito). Tu cupo se confirma al aprobarse el cargo.</p><button type="button" class="next-button payphone-button" data-payphone>PAGAR ${moneyFormat(total)} CON TARJETA</button><p class="fine-print">Si el pago falla o lo cancelas, tu orden sigue PENDIENTE y puedes reintentar o usar la transferencia.</p><div class="payment-unavailable">Payphone está pendiente de conectar con las credenciales y el dominio autorizado de Ágape. Esta demostración no realiza cobros.</div></section><section class="transfer-panel"><h3>O paga por transferencia</h3><p>Realiza una transferencia bancaria por <b>${moneyFormat(total)}</b> y sube el comprobante desde esta página.</p><div class="bank-details" data-bank-primary></div><div class="other-banks" data-bank-other></div><label class="form-field proof-field"><span>SUBE TU COMPROBANTE</span><input type="file" name="proof" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" /><small>Formatos permitidos: JPG, PNG, WEBP o PDF · máximo 10 MB.</small></label>${proof}<button type="button" class="next-button proof-submit" data-proof-submit>YA PAGUÉ / ENVIAR COMPROBANTE</button><p class="payment-unavailable">El comprobante no se transmite ni queda guardado en esta demostración.</p></section><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><span></span></div>`;
+    return `<div class="form-kicker">ORDEN · ${safe(ref)}</div><h2 id="booking-title">Orden ${safe(ref)}</h2><p class="order-status">PENDIENTE</p><div class="transfer-panel order-summary"><p>${safe(eventName)}<br /><small>${safe(date)} · ${safe(event?.arrivalTime || '')}</small></p><div class="order-line"><b>1× Venta · ${safe(state.gender)}</b><b>${moneyFormat(total)}</b></div><div class="order-line order-total"><b>Total</b><b>${moneyFormat(total)}</b></div></div><section class="transfer-panel"><h3>Paga con tarjeta</h3><p>Pago seguro con PayPhone (tarjetas de crédito y débito). Tu cupo se confirma al aprobarse el cargo.</p><button type="button" class="next-button payphone-button" data-payphone>PAGAR ${moneyFormat(total)} CON TARJETA</button><p class="fine-print">Si el pago falla o lo cancelas, tu orden sigue pendiente y puedes reintentar o usar transferencia.</p></section><section class="transfer-panel"><h3>O paga por transferencia</h3><p>Realiza una transferencia bancaria por <b>${moneyFormat(total)}</b> y sube el comprobante desde esta página.</p><div class="bank-details" data-bank-primary></div><div class="other-banks" data-bank-other></div><label class="form-field proof-field"><span>SUBE TU COMPROBANTE</span><input type="file" name="proof" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" /><small>Formatos permitidos: JPG, PNG, WEBP o PDF · máximo 10 MB.</small></label>${proof}<button type="button" class="next-button proof-submit" data-proof-submit>YA PAGUÉ / ENVIAR COMPROBANTE</button></section><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><span></span></div>`;
   }
 
   function selectedPriceCents() {
@@ -285,7 +285,7 @@
   }
 
   function doneStep() {
-    return `<div class="form-kicker">ORDEN ${safe(state.orderRef)}</div><h2 id="booking-title">Comprobante recibido</h2><p class="form-intro">Tu orden continúa PENDIENTE hasta que el equipo revise el pago. La demostración no envió el archivo.</p><div class="review-box"><div class="review-line"><span>Estado</span><b>PENDIENTE</b></div><div class="review-line"><span>Referencia</span><b>${safe(state.orderRef)}</b></div><div class="review-line"><span>Comprobante</span><b>${safe(state.proofName || 'No seleccionado')}</b></div><div class="review-line"><span>Pase QR</span><b>Se emite tras validar el pago</b></div></div><div class="booking-actions"><span></span><button class="next-button" data-done>VOLVER A LA PÁGINA <span>↗</span></button></div>`;
+    return `<div class="form-kicker">ORDEN ${safe(state.orderRef)}</div><h2 id="booking-title">Comprobante recibido</h2><p class="form-intro">Tu orden continúa pendiente mientras el equipo revisa el pago. Si se confirma, recibirás tu pase QR por correo.</p><div class="review-box"><div class="review-line"><span>Estado</span><b>Pago en revisión</b></div><div class="review-line"><span>Referencia</span><b>${safe(state.orderRef)}</b></div><div class="review-line"><span>Comprobante</span><b>${safe(state.proofName || 'No seleccionado')}</b></div><div class="review-line"><span>Pase QR</span><b>Se envía al confirmar el pago</b></div></div><div class="booking-actions"><span></span><button class="next-button" data-done>VOLVER A LA PÁGINA <span>↗</span></button></div>`;
   }
 
   function render() {
@@ -300,7 +300,8 @@
   function openBooking(date = '') {
     state.step = 1;
     state.date = date;
-    state.name = state.age = state.gender = state.phone = state.email = state.social = state.cedula = state.cocktailType = state.cocktail = state.intention = state.payment = state.orderRef = state.proofName = state.couponCode = '';
+    state.name = state.age = state.gender = state.phone = state.email = state.social = state.cedula = state.cocktailType = state.cocktail = state.intention = state.payment = state.orderRef = state.uploadToken = state.proofName = state.couponCode = '';
+    state.proofFile = null;
     state.couponDiscountCents = 0;
     state.terms = false;
     render();
@@ -384,6 +385,7 @@
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'No se pudo registrar la solicitud.');
       state.orderRef = data.reference;
+      state.uploadToken = data.uploadToken;
       setStep(6);
     } catch (error) {
       if (next) next.disabled = false;
@@ -391,7 +393,7 @@
     }
   }
 
-  document.addEventListener('click', (event) => {
+  document.addEventListener('click', async (event) => {
     const infoLink = event.target.closest('[data-info-page]');
     if (infoLink) { event.preventDefault(); infoContent.innerHTML = infoCopy[infoLink.dataset.infoPage] || ''; infoPage.classList.add('open'); infoPage.setAttribute('aria-hidden', 'false'); infoPage.scrollTop = 0; return; }
     if (event.target.closest('[data-info-close]')) { event.preventDefault(); infoPage.classList.remove('open'); infoPage.setAttribute('aria-hidden', 'true'); if (location.hash === '#noches') document.querySelector('#noches')?.scrollIntoView({ behavior: 'smooth' }); return; }
@@ -428,8 +430,26 @@
     }
     if (event.target.closest('[data-back]')) { saveFields(); setStep(Math.max(1, state.step - 1)); return; }
     if (event.target.closest('[data-finish]')) { if (state.payment) setStep(7); else notify('Elige un método de pago de ejemplo.'); return; }
-    if (event.target.closest('[data-payphone]')) { notify('Payphone requiere configurar las credenciales y el dominio de Ágape. No se realizó ningún cobro.'); return; }
-    if (event.target.closest('[data-proof-submit]')) { if (!state.proofName) { notify('Selecciona primero tu comprobante.'); return; } setStep(7); return; }
+    if (event.target.closest('[data-payphone]')) {
+      const button = event.target.closest('[data-payphone]'); button.disabled = true; button.textContent = 'CONECTANDO CON PAYPHONE…';
+      try {
+        const response = await fetch('/api/public/payments/payphone/prepare', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference: state.orderRef, uploadToken: state.uploadToken }) });
+        const data = await response.json(); if (!response.ok) throw new Error(data.error || 'No se pudo iniciar el pago con tarjeta.');
+        window.location.assign(data.payWithCard);
+      } catch (error) { button.disabled = false; button.textContent = `PAGAR ${moneyFormat(Math.max(0, selectedPriceCents() - Number(state.couponDiscountCents || 0)))} CON TARJETA`; notify(error instanceof Error ? error.message : 'No se pudo iniciar el pago.'); }
+      return;
+    }
+    if (event.target.closest('[data-proof-submit]')) {
+      if (!state.proofFile || !state.uploadToken) { notify('Selecciona un comprobante válido.'); return; }
+      const button = event.target.closest('[data-proof-submit]'); button.disabled = true; button.textContent = 'ENVIANDO COMPROBANTE…';
+      try {
+        const form = new FormData(); form.append('proof', state.proofFile); form.append('uploadToken', state.uploadToken);
+        const response = await fetch(`/api/public/reservations/${encodeURIComponent(state.orderRef)}/proof`, { method: 'POST', body: form });
+        const data = await response.json(); if (!response.ok) throw new Error(data.error || 'No se pudo enviar el comprobante.');
+        setStep(7);
+      } catch (error) { button.disabled = false; button.textContent = 'YA PAGUÉ / ENVIAR COMPROBANTE'; notify(error instanceof Error ? error.message : 'No se pudo enviar el comprobante.'); }
+      return;
+    }
     if (event.target.closest('[data-done]')) { dialog.close(); return; }
     if (event.target.closest('.notice-close')) event.target.closest('.event-notice').remove();
   });
@@ -447,6 +467,7 @@
         return;
       }
       state.proofName = file.name;
+      state.proofFile = file;
       render();
       return;
     }
@@ -472,6 +493,11 @@
   dialog.addEventListener('click', (event) => {
     if (event.target === dialog) dialog.close();
   });
+  const paymentResult = new URLSearchParams(location.search).get('payment');
+  if (paymentResult === 'confirmed') notify('Pago confirmado. El pase QR fue enviado al correo registrado.');
+  else if (paymentResult === 'processing') notify('Estamos verificando tu pago. Si se aprueba, recibirás el pase QR por correo.');
+  else if (paymentResult === 'failed') notify('El pago no se confirmó. Puedes reintentar o elegir transferencia.');
+  else if (paymentResult === 'cancelled') notify('Pago cancelado. Tu orden sigue pendiente y puedes reintentar.');
 })();
 
     </script>

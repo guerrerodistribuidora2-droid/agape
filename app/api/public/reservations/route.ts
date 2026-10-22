@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { ensurePaymentSchema } from "../../../../lib/payment-schema";
 
 export const dynamic = "force-dynamic";
 const sameOrigin = (request: Request) => {
@@ -9,6 +10,7 @@ const sameOrigin = (request: Request) => {
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: "Origen no permitido." }, { status: 403 });
   if (!env.DB) return Response.json({ error: "Las reservas no están disponibles por el momento." }, { status: 503 });
+  await ensurePaymentSchema(env.DB);
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
   if (!body || body.consentAccepted !== true) return Response.json({ error: "Autoriza el tratamiento de datos para continuar." }, { status: 400 });
   const text = (key: string, max: number) => typeof body[key] === "string" ? body[key].trim().slice(0, max) : "";
@@ -43,11 +45,13 @@ export async function POST(request: Request) {
 
   const id = crypto.randomUUID();
   const reference = `AG-${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+  const uploadToken = [...crypto.getRandomValues(new Uint8Array(32))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  const uploadTokenHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(uploadToken)).then((hash) => [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join(""));
   try {
-    await env.DB.prepare(`INSERT INTO reservations (id, reference, event_id, name, age, gender, phone, email, social, cedula, cocktail, intention, coupon_code, total_cents, status, consent_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment', CURRENT_TIMESTAMP)`)
-      .bind(id, reference, eventId, name, age, gender, phone, email, social, cedula, cocktail, intention, couponCode, totalCents).run();
+    await env.DB.prepare(`INSERT INTO reservations (id, reference, event_id, name, age, gender, phone, email, social, cedula, cocktail, intention, coupon_code, total_cents, status, upload_token_hash, consent_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment', ?, CURRENT_TIMESTAMP)`)
+      .bind(id, reference, eventId, name, age, gender, phone, email, social, cedula, cocktail, intention, couponCode, totalCents, uploadTokenHash).run();
     if (couponCode) await env.DB.prepare("UPDATE coupons SET used_count = used_count + 1 WHERE code = ?").bind(couponCode).run();
   } catch { return Response.json({ error: "No se pudo guardar la solicitud. Inténtalo nuevamente." }, { status: 500 }); }
-  return Response.json({ reference, totalCents, status: "pending_payment" }, { status: 201, headers: { "Cache-Control": "no-store" } });
+  return Response.json({ reference, uploadToken, totalCents, status: "pending_payment" }, { status: 201, headers: { "Cache-Control": "no-store" } });
 }
