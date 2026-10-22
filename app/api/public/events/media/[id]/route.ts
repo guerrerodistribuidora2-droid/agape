@@ -1,14 +1,15 @@
 import { env } from "cloudflare:workers";
+import { getDatabase } from "../../../../../../lib/turso";
 import { getChatGPTUser } from "../../../../../chatgpt-auth";
 import { isOrganizer } from "../../../../../../lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
-  if (!env.DB || !env.BUCKET) return new Response("No disponible", { status: 404 });
+  if (!getDatabase(env) || !env.BUCKET) return new Response("No disponible", { status: 404 });
   const { id } = await context.params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return new Response("No encontrado", { status: 404 });
-  const row = await env.DB.prepare("SELECT image_key, status FROM events WHERE id = ?")
+  const row = await getDatabase(env).prepare("SELECT image_key, status FROM events WHERE id = ?")
     .bind(id).first<{ image_key: string | null; status: string }>();
   if (!row?.image_key || row.image_key !== `${id}/cover`) return new Response("No encontrado", { status: 404 });
   if (row.status !== "published") {

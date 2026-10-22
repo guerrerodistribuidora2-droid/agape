@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { getDatabase } from "../../../../lib/turso";
 
 export const dynamic = "force-dynamic";
 const defaults: Record<string, string> = {
@@ -17,8 +18,8 @@ const defaults: Record<string, string> = {
 
 export async function GET() {
   const settings = { ...defaults };
-  if (env.DB) {
-    const rows = await env.DB.prepare("SELECT key, value FROM site_settings").all<{ key: string; value: string }>();
+  if (getDatabase(env)) {
+    const rows = await getDatabase(env).prepare("SELECT key, value FROM site_settings").all<{ key: string; value: string }>();
     for (const row of rows.results) if (Object.hasOwn(settings, row.key)) settings[row.key] = row.value;
   }
   return Response.json({ settings }, { headers: { "Cache-Control": "public, max-age=60" } });

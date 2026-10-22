@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { getDatabase } from "./turso";
 import QRCode from "qrcode";
 import { ensurePaymentSchema } from "./payment-schema";
 
@@ -21,17 +22,17 @@ export async function makeTicketUrl(reference: string, origin?: string) {
 }
 
 export async function sendConfirmationEmail(reservationId: string, origin?: string) {
-  if (!env.DB) throw new Error("La base de datos no está disponible.");
-  await ensurePaymentSchema(env.DB);
+  if (!getDatabase(env)) throw new Error("La base de datos no está disponible.");
+  await ensurePaymentSchema(getDatabase(env));
   if (!env.RESEND_API_KEY || !env.AGAPE_EMAIL_FROM) throw new Error("El correo aún no está conectado. Configura el proveedor y el remitente verificado.");
-  const claim = await env.DB.prepare(`UPDATE reservations SET email_sending_at = CURRENT_TIMESTAMP WHERE id = ? AND confirmation_email_sent_at IS NULL AND (email_sending_at IS NULL OR email_sending_at < datetime('now', '-10 minutes'))`).bind(reservationId).run();
+  const claim = await getDatabase(env).prepare(`UPDATE reservations SET email_sending_at = CURRENT_TIMESTAMP WHERE id = ? AND confirmation_email_sent_at IS NULL AND (email_sending_at IS NULL OR email_sending_at < datetime('now', '-10 minutes'))`).bind(reservationId).run();
   if (!claim.meta.changes) {
-    const current = await env.DB.prepare("SELECT confirmation_email_sent_at FROM reservations WHERE id = ?").bind(reservationId).first<{ confirmation_email_sent_at: string | null }>();
+    const current = await getDatabase(env).prepare("SELECT confirmation_email_sent_at FROM reservations WHERE id = ?").bind(reservationId).first<{ confirmation_email_sent_at: string | null }>();
     if (current?.confirmation_email_sent_at) return { sent: true, alreadySent: true };
     throw new Error("Ya se está preparando este correo. Espera un momento e inténtalo de nuevo.");
   }
   try {
-    const row = await env.DB.prepare(`SELECT r.reference, r.name, r.email, r.total_cents, r.status, e.title AS event_title, e.event_date, e.venue, e.arrival_time FROM reservations r LEFT JOIN events e ON e.id = r.event_id WHERE r.id = ?`).bind(reservationId).first<Reservation>();
+    const row = await getDatabase(env).prepare(`SELECT r.reference, r.name, r.email, r.total_cents, r.status, e.title AS event_title, e.event_date, e.venue, e.arrival_time FROM reservations r LEFT JOIN events e ON e.id = r.event_id WHERE r.id = ?`).bind(reservationId).first<Reservation>();
     if (!row) throw new Error("No se encontró la reserva.");
     if (!["payment_confirmed", "approved"].includes(row.status)) throw new Error("Confirma el pago antes de emitir el pase.");
     const ticketUrl = await makeTicketUrl(row.reference, origin);
@@ -51,10 +52,10 @@ export async function sendConfirmationEmail(reservationId: string, origin?: stri
       const detail = await result.json().catch(() => ({})) as { message?: string };
       throw new Error(detail.message || "El proveedor de correo rechazó el envío.");
     }
-    await env.DB.prepare("UPDATE reservations SET confirmation_email_sent_at = CURRENT_TIMESTAMP, email_sending_at = NULL WHERE id = ?").bind(reservationId).run();
+    await getDatabase(env).prepare("UPDATE reservations SET confirmation_email_sent_at = CURRENT_TIMESTAMP, email_sending_at = NULL WHERE id = ?").bind(reservationId).run();
     return { sent: true, alreadySent: false };
   } catch (error) {
-    await env.DB.prepare("UPDATE reservations SET email_sending_at = NULL WHERE id = ?").bind(reservationId).run();
+    await getDatabase(env).prepare("UPDATE reservations SET email_sending_at = NULL WHERE id = ?").bind(reservationId).run();
     throw error;
   }
 }

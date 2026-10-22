@@ -13,5 +13,7 @@ declare namespace Cloudflare {
     AGAPE_EMAIL_FROM?: string;
     AGAPE_TICKET_SIGNING_SECRET?: string;
     SITE_BASE_URL?: string;
+    TURSO_DATABASE_URL?: string;
+    TURSO_AUTH_TOKEN?: string;
   }
 }

@@ -8,6 +8,7 @@ const additions = [
   ["upload_token_hash", "TEXT"],
   ["confirmation_email_sent_at", "TEXT"],
   ["email_sending_at", "TEXT"],
+  ["expires_at", "TEXT"],
 ] as const;
 
 let ready: Promise<void> | null = null;
