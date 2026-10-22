@@ -25,6 +25,8 @@ export async function POST(request: Request) {
   const head = new Uint8Array(await image.slice(0, 12).arrayBuffer());
   const valid = image.type === "image/png" ? head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47 : image.type === "image/jpeg" ? head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff : String.fromCharCode(...head.slice(0, 4)) === "RIFF" && String.fromCharCode(...head.slice(8, 12)) === "WEBP";
   if (!valid) return Response.json({ error: "El archivo no parece ser una imagen válida." }, { status: 400 });
+  const activeCount = await env.DB.prepare("SELECT COUNT(*) AS total FROM gallery_images WHERE active = 1").first<{ total: number }>();
+  if ((activeCount?.total ?? 0) >= 3) return Response.json({ error: "El carrusel tiene tres espacios. Quita una imagen antes de agregar otra." }, { status: 409 });
   const id = crypto.randomUUID();
   await env.BUCKET.put(`gallery/${id}`, image.stream(), { httpMetadata: { contentType: image.type, cacheControl: "public, max-age=3600" } });
   const next = await env.DB.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS position FROM gallery_images").first<{ position: number }>();
