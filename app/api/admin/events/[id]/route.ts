@@ -1,12 +1,10 @@
 import { env } from "cloudflare:workers";
-import { getChatGPTUser } from "../../../../chatgpt-auth";
-import { isOrganizer } from "../../../../../lib/admin-auth";
+import { isAdminRequest } from "../../../../../lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
-  const user = await getChatGPTUser();
-  if (!user || !isOrganizer(user.email)) return Response.json({ error: "No autorizado." }, { status: 403 });
+  if (!(await isAdminRequest(request))) return Response.json({ error: "No autorizado." }, { status: 403 });
   const origin = request.headers.get("origin");
   if (origin && new URL(origin).origin !== new URL(request.url).origin) {
     return Response.json({ error: "Origen no permitido." }, { status: 403 });

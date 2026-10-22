@@ -1,6 +1,5 @@
 import { env } from "cloudflare:workers";
-import { getChatGPTUser } from "../../../chatgpt-auth";
-import { isOrganizer } from "../../../../lib/admin-auth";
+import { isAdminRequest } from "../../../../lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +19,6 @@ type EventPayload = {
   status: "draft" | "published";
   imageKey: string | null;
 };
-
-async function authorized() {
-  const user = await getChatGPTUser();
-  return user && isOrganizer(user.email) ? user : null;
-}
 
 function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
@@ -111,8 +105,8 @@ function eventImageUrl(key: unknown) {
   return typeof key === "string" && key ? `/api/public/events/media/${key.split("/")[0]}` : null;
 }
 
-export async function GET() {
-  if (!(await authorized())) return Response.json({ error: "No autorizado." }, { status: 403 });
+export async function GET(request: Request) {
+  if (!(await isAdminRequest(request))) return Response.json({ error: "No autorizado." }, { status: 403 });
   if (!env.DB) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
 
   const { results } = await env.DB.prepare(
@@ -133,7 +127,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!(await authorized())) return Response.json({ error: "No autorizado." }, { status: 403 });
+  if (!(await isAdminRequest(request))) return Response.json({ error: "No autorizado." }, { status: 403 });
   if (!sameOrigin(request)) return Response.json({ error: "Origen no permitido." }, { status: 403 });
   if (!env.DB) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
 
@@ -157,7 +151,7 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  if (!(await authorized())) return Response.json({ error: "No autorizado." }, { status: 403 });
+  if (!(await isAdminRequest(request))) return Response.json({ error: "No autorizado." }, { status: 403 });
   if (!sameOrigin(request)) return Response.json({ error: "Origen no permitido." }, { status: 403 });
   if (!env.DB) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
 

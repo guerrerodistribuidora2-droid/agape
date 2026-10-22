@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import AdminModules from "./AdminModules";
 
 type EventRecord = {
   id: string;
@@ -38,6 +39,7 @@ const currency = (cents: number) => new Intl.NumberFormat("es-EC", {
 }).format(cents / 100);
 
 export default function AdminDashboard({ organizerName }: { organizerName: string }) {
+  const [activeSection, setActiveSection] = useState<"events" | "gallery" | "coupons" | "content" | "customers">("events");
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -67,6 +69,14 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
 
   useEffect(() => { void loadEvents(); }, [loadEvents]);
 
+  useEffect(() => {
+    const section = new URLSearchParams(window.location.search).get("seccion");
+    const sectionMap: Record<string, typeof activeSection> = {
+      eventos: "events", galeria: "gallery", cupones: "coupons", contenido: "content", clientes: "customers",
+    };
+    if (section && sectionMap[section]) setActiveSection(sectionMap[section]);
+  }, []);
+
   const counts = useMemo(() => ({
     total: events.filter((event) => event.status !== "archived").length,
     published: events.filter((event) => event.status === "published").length,
@@ -78,6 +88,8 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
     (filter === "all" || event.status === filter) &&
     `${event.title} ${event.venue} ${event.eventDate}`.toLowerCase().includes(query.toLowerCase())
   ), [events, filter, query]);
+
+  if (activeSection !== "events") return <AdminModules section={activeSection} organizerName={organizerName} />;
 
   function createEvent() {
     setEditingId(null);
@@ -148,13 +160,17 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
       <aside className="admin-sidebar">
         <a className="admin-logo" href="/" aria-label="Volver a Ágape"><img src="/agape-logo-transparent.png" alt="Ágape · Conexión humana real" /></a>
         <div className="sidebar-caption">GESTIÓN</div>
-        <a className="sidebar-link active" href="#eventos"><span>◫</span> Eventos</a>
+        <button className="sidebar-link active" onClick={() => setActiveSection("events")}><span>◫</span> Eventos</button>
+        <button className="sidebar-link" onClick={() => setActiveSection("gallery")}><span>▧</span> Carrusel</button>
+        <button className="sidebar-link" onClick={() => setActiveSection("coupons")}><span>％</span> Promociones</button>
+        <button className="sidebar-link" onClick={() => setActiveSection("content")}><span>⌘</span> Contenido y contacto</button>
+        <button className="sidebar-link" onClick={() => setActiveSection("customers")}><span>◉</span> Clientes</button>
         <a className="sidebar-link" href="#ayuda"><span>◇</span> Guía rápida</a>
         <div className="sidebar-bottom"><div className="organizer-avatar">{organizerName.slice(0, 1).toUpperCase()}</div><div><b>{organizerName}</b><small>Organizador autorizado</small></div></div>
       </aside>
 
       <section className="admin-main" id="eventos">
-        <header className="admin-topbar"><a href="/" className="back-to-site">← Ver sitio público</a><span className="secure-label"><i /> PANEL PRIVADO</span></header>
+        <header className="admin-topbar"><a href="/agape" className="back-to-site">← Ver sitio público</a><div className="admin-top-actions"><span className="secure-label"><i /> PANEL PRIVADO</span><button className="admin-logout" onClick={async () => { await fetch("/api/admin/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "logout" }) }); window.location.replace("/admin"); }}>Cerrar sesión</button></div></header>
         <div className="admin-content">
           <div className="admin-heading-row"><div><p className="admin-eyebrow">CENTRO DE CONTROL · ÁGAPE</p><h1>Eventos con intención.</h1><p className="admin-subtitle">Organiza fechas, cupos y precios desde un solo lugar.</p></div><button className="admin-create-button" onClick={createEvent}><span>＋</span> Crear evento</button></div>
 

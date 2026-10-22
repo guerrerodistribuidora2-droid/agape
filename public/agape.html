@@ -98,7 +98,7 @@
       <div class="booking-shell"><div class="booking-top"><a class="brand dialog-brand" href="#inicio"><img class="brand-image" src="/agape-logo-transparent.png" alt="Ágape · Conexión humana real" /></a><button class="dialog-close" aria-label="Cerrar reserva">×</button></div>
         <div class="booking-content"><div class="booking-visual"><div class="booking-visual-ring"></div><span class="booking-visual-star">✳</span><span class="booking-label">UNA NOCHE PARA CONECTAR</span><div class="booking-visual-quote">Lo mejor<br />empieza con<br /><em>hola.</em></div><div class="booking-visual-foot">QUITO · ECUADOR <span>✳</span> ÁGAPE</div></div>
           <div class="booking-form-wrap"><div class="booking-progress"><span id="step-label">PASO 1 DE 5</span><div class="progress-track"><i id="progress-fill"></i></div></div><div id="booking-form" class="booking-form"></div></div>
-        </div><div class="booking-bottom"><span>✳</span> TUS DATOS SOLO SE ENVIARÍAN A ÁGAPE PARA GESTIONAR LA RESERVA <span class="demo-pill">MODO DEMO · NO SE ENVÍA</span></div>
+        </div><div class="booking-bottom"><span>✳</span> TUS DATOS SE GUARDAN EN ÁGAPE PARA GESTIONAR TU SOLICITUD <span class="demo-pill">PENDIENTE DE PAGO</span></div>
       </div>
     </dialog>
     <div class="toast" role="status" aria-live="polite"></div><section id="info-page" class="info-page" aria-hidden="true"><header class="info-header"><a class="brand" href="#inicio" aria-label="Ágape"><span class="info-mark">Á</span><span class="info-wordmark">ÁGAPE<small>CONEXIÓN HUMANA REAL</small></span></a><button type="button" data-info-close class="info-close">← VOLVER</button></header><article id="info-content" class="info-content"></article></section>
@@ -151,7 +151,7 @@
     contacto: `<div class="form-kicker">CONTACTO</div><h1>Hablemos</h1><p>Si tienes dudas sobre tu reserva, tu pase con QR o el pago, escríbenos y te respondemos en horario de oficina (Quito, GMT-5).</p><section class="info-card"><h2>Soporte de reservas</h2><p>Cambios de fecha, comprobantes de transferencia y reenvío de tu pase con código QR.</p><a href="mailto:eventosagape.ec@gmail.com">eventosagape.ec@gmail.com</a></section><section class="info-card"><h2>Alianzas y prensa</h2><p>Marcas, venues y medios: cuéntanos tu propuesta al mismo correo y la revisamos.</p><a href="https://www.instagram.com/agape.experiencias/" target="_blank" rel="noopener">@agape.experiencias en Instagram</a></section><a class="next-button info-cta" href="#noches" data-info-close>VER PRÓXIMAS NOCHES</a>`
   };
   let publishedEvents = [];
-  const state = { step: 1, date: '', name: '', age: '', gender: '', phone: '', email: '', social: '', cedula: '', cocktailType: '', cocktail: '', intention: '', terms: false, payment: '', orderRef: '', proofName: '' };
+  const state = { step: 1, date: '', name: '', age: '', gender: '', phone: '', email: '', social: '', cedula: '', cocktailType: '', cocktail: '', intention: '', terms: false, payment: '', orderRef: '', proofName: '', couponCode: '', couponDiscountCents: 0, siteContent: null };
   let toastTimer;
   const safe = (value) => String(value || '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -162,8 +162,59 @@
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
   }
 
+  async function loadSiteContent() {
+    try {
+      const response = await fetch('/api/public/site-content', { cache: 'no-store' });
+      if (!response.ok) return;
+      const data = await response.json();
+      state.siteContent = data.settings || null;
+      const settings = state.siteContent;
+      if (!settings) return;
+      const setText = (selector, value) => { const node = document.querySelector(selector); if (node && value) node.textContent = value; };
+      setText('.hero h1', settings.hero_title);
+      setText('.hero-lede', settings.hero_lede);
+      setText('.nights-section .section-head p', settings.agenda_intro);
+      setText('.scroll-story-copy h2', settings.story_title);
+      setText('.scroll-story-copy p', settings.story_text);
+      setText('.closing-cta h2', settings.closing_title);
+      const email = settings.contact_email || 'eventosagape.ec@gmail.com';
+      Object.keys(infoCopy).forEach((key) => { infoCopy[key] = infoCopy[key].replaceAll('eventosagape.ec@gmail.com', safe(email)); });
+      document.querySelectorAll('a[href^="mailto:"]').forEach((link) => { link.href = `mailto:${email}`; if (link.textContent.includes('@')) link.textContent = email; });
+      const phone = String(settings.whatsapp_number || '593994239868').replace(/\D/g, '');
+      document.querySelectorAll('a[href*="wa.me/"]').forEach((link) => { link.href = `https://wa.me/${phone}?text=${encodeURIComponent('Hola Ágape, tengo una consulta')}`; });
+      document.querySelectorAll('.footer-right a[href*="instagram.com"]').forEach((link) => { if (settings.instagram_url) link.href = settings.instagram_url; });
+      applyPaymentContent();
+    } catch { /* La página conserva los datos públicos predeterminados. */ }
+  }
+
+  function applyPaymentContent() {
+    const settings = state.siteContent;
+    if (!settings) return;
+    const primary = formHost.querySelector('[data-bank-primary]');
+    const other = formHost.querySelector('[data-bank-other]');
+    if (primary) primary.textContent = settings.bank_primary || '';
+    if (other) other.textContent = settings.bank_other || '';
+  }
+
+  async function loadGalleryContent() {
+    try {
+      const response = await fetch('/api/public/gallery', { cache: 'no-store' });
+      if (!response.ok) return;
+      const data = await response.json();
+      const slides = [...document.querySelectorAll('.circular-slide')];
+      (data.images || []).slice(0, slides.length).forEach((image, index) => {
+        const slide = slides[index];
+        const picture = slide.querySelector('img');
+        const title = slide.querySelector('h3');
+        const label = slide.querySelector('.circular-slide-caption span');
+        if (picture) { picture.src = image.imageUrl; picture.alt = image.alt_text || image.altText; }
+        if (title) title.textContent = image.caption;
+        if (label) label.textContent = `${String(index + 1).padStart(2, '0')} · ÁGAPE`;
+      });
+    } catch { /* La galería de marca queda como respaldo. */ }
+  }
+
   function setStep(next) {
-    if (next === 6 && !state.orderRef) state.orderRef = `AG-${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`;
     state.step = next;
     render();
   }
@@ -201,7 +252,7 @@
     const selectedEvent = publishedEvents.find((event) => event.id === state.date);
     const selectedLabel = selectedEvent ? eventSummary() : 'Sin elegir';
     const configuredPrice = selectedEvent ? Number(state.gender === 'Hombre' ? selectedEvent.menPriceCents : selectedEvent.womenPriceCents || selectedEvent.menPriceCents || 0) : 0;
-    const totalCents = Math.max(0, configuredPrice);
+    const totalCents = Math.max(0, configuredPrice - Number(state.couponDiscountCents || 0));
     const platformCents = totalCents ? 150 : 0;
     const beforeTaxCents = Math.max(0, totalCents - platformCents);
     const subtotalCents = Math.round(beforeTaxCents / 1.15);
@@ -209,17 +260,17 @@
     const money = (cents) => new Intl.NumberFormat('es-EC', { style: 'currency', currency: 'USD' }).format(cents / 100);
     const intentionLabel = ({ romantico: 'Algo romántico', amistades: 'Nuevas amistades', networking: 'Networking', abierto: 'Estoy abierto/a' })[state.intention] || '—';
     const maskedId = state.cedula ? `${state.cedula.slice(0, 2)}••••••${state.cedula.slice(-2)}` : '—';
-    return `<div class="form-kicker">PASO 5 DE 5 · REVISA TUS DATOS</div><h2 id="booking-title">Casi listo</h2><p class="form-intro">Aún no reservamos nada. Tu reserva se activa cuando eliges pagar con tarjeta o transferencia.</p><div class="review-box checkout-review"><div class="review-heading"><span>Fecha</span><button type="button" data-edit-step="1">Editar</button></div><div class="review-value">${safe(selectedLabel)}${selectedEvent ? ` · ${safe(selectedEvent.venue)}` : ''}</div><div class="review-heading"><span>A nombre de</span><button type="button" data-edit-step="2">Editar</button></div><div class="review-value">${safe(state.name)}, ${safe(state.age)}</div><div class="review-heading"><span>Cóctel</span><button type="button" data-edit-step="3">Editar</button></div><div class="review-value">${safe(state.cocktail || '—')}</div><div class="review-heading"><span>Buscas</span><button type="button" data-edit-step="4">Editar</button></div><div class="review-value">${safe(intentionLabel)}</div><div class="review-heading"><span>Contacto</span><button type="button" data-edit-step="2">Editar</button></div><div class="review-value">${safe(state.phone)} · ${safe(state.email)}</div><div class="review-heading"><span>Redes y cédula</span><button type="button" data-edit-step="2">Editar</button></div><div class="review-value">${safe(state.social || '—')} · ${safe(maskedId)}</div></div><div class="price-box"><div class="price-title"><span>Preventa<br /><small>Incluye cóctel de cortesía</small></span><b>${money(totalCents)}</b></div><p>Desglose del PVP (todo incluido):</p><div class="price-row"><span>Subtotal</span><b>${money(subtotalCents)}</b></div><div class="price-row"><span>IVA (15%)</span><b>${money(taxCents)}</b></div><div class="price-row"><span>Uso de plataforma</span><b>${money(platformCents)}</b></div><div class="price-row total"><span>Total a pagar</span><b>${money(totalCents)}</b></div></div><label class="form-field coupon-field"><span>¿TIENES UN CUPÓN?</span><div class="coupon-row"><input name="coupon" placeholder="Ingresa tu código" /><button type="button" data-coupon>Aplicar</button></div><small class="coupon-message" aria-live="polite"></small></label><label class="checkbox-row consent-row"><input type="checkbox" name="terms" ${state.terms ? 'checked' : ''} /><span>Autorizo el tratamiento de mis datos personales conforme a la <a href="#privacidad" data-info-page="privacidad">política de privacidad</a> y los <a href="#terminos" data-info-page="terminos">términos</a> (LOPDP, Ecuador).</span></label><div class="notice-box process-box"><b>Cómo funciona</b><p>◆ Revisamos tu perfil para cuidar el balance y la calidad de la noche.</p><p>◆ Si tu perfil no aplica para esa fecha, te avisamos dentro de las próximas 2 horas y te devolvemos el 100% de tu pago.</p><p>◆ Si aplica, tu reserva con código QR llega directo a tu correo.</p></div><p class="payment-note">En el siguiente paso eliges tarjeta (Payphone) o transferencia.<br />Tu reserva se activa ahí, al registrar el pago.</p><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><button class="next-button consent-next" data-next ${state.terms ? '' : 'disabled'}>ESTOY DE ACUERDO · CONTINUAR AL PAGO</button></div>`;
+    return `<div class="form-kicker">PASO 5 DE 5 · REVISA TUS DATOS</div><h2 id="booking-title">Casi listo</h2><p class="form-intro">Aún no reservamos nada. Tu reserva se activa cuando eliges pagar con tarjeta o transferencia.</p><div class="review-box checkout-review"><div class="review-heading"><span>Fecha</span><button type="button" data-edit-step="1">Editar</button></div><div class="review-value">${safe(selectedLabel)}${selectedEvent ? ` · ${safe(selectedEvent.venue)}` : ''}</div><div class="review-heading"><span>A nombre de</span><button type="button" data-edit-step="2">Editar</button></div><div class="review-value">${safe(state.name)}, ${safe(state.age)}</div><div class="review-heading"><span>Cóctel</span><button type="button" data-edit-step="3">Editar</button></div><div class="review-value">${safe(state.cocktail || '—')}</div><div class="review-heading"><span>Buscas</span><button type="button" data-edit-step="4">Editar</button></div><div class="review-value">${safe(intentionLabel)}</div><div class="review-heading"><span>Contacto</span><button type="button" data-edit-step="2">Editar</button></div><div class="review-value">${safe(state.phone)} · ${safe(state.email)}</div><div class="review-heading"><span>Redes y cédula</span><button type="button" data-edit-step="2">Editar</button></div><div class="review-value">${safe(state.social || '—')} · ${safe(maskedId)}</div></div><div class="price-box"><div class="price-title"><span>Preventa<br /><small>Incluye cóctel de cortesía</small></span><b>${money(totalCents)}</b></div><p>Desglose del PVP (todo incluido):</p><div class="price-row"><span>Subtotal</span><b>${money(subtotalCents)}</b></div><div class="price-row"><span>IVA (15%)</span><b>${money(taxCents)}</b></div><div class="price-row"><span>Uso de plataforma</span><b>${money(platformCents)}</b></div><div class="price-row total"><span>Total a pagar</span><b>${money(totalCents)}</b></div></div><label class="form-field coupon-field"><span>¿TIENES UN CUPÓN?</span><div class="coupon-row"><input name="coupon" value="${safe(state.couponCode)}" placeholder="Ingresa tu código" /><button type="button" data-coupon>Aplicar</button></div><small class="coupon-message" aria-live="polite">${state.couponCode ? `Código ${safe(state.couponCode)} aplicado.` : ''}</small></label><label class="checkbox-row consent-row"><input type="checkbox" name="terms" ${state.terms ? 'checked' : ''} /><span>Autorizo el tratamiento de mis datos personales conforme a la <a href="#privacidad" data-info-page="privacidad">política de privacidad</a> y los <a href="#terminos" data-info-page="terminos">términos</a> (LOPDP, Ecuador).</span></label><div class="notice-box process-box"><b>Cómo funciona</b><p>◆ Revisamos tu perfil para cuidar el balance y la calidad de la noche.</p><p>◆ Si tu perfil no aplica para esa fecha, te avisamos dentro de las próximas 2 horas y te devolvemos el 100% de tu pago.</p><p>◆ Si aplica, tu reserva con código QR llega directo a tu correo.</p></div><p class="payment-note">En el siguiente paso eliges tarjeta (Payphone) o transferencia.<br />Tu reserva se activa ahí, al registrar el pago.</p><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><button class="next-button consent-next" data-next ${state.terms ? '' : 'disabled'}>ESTOY DE ACUERDO · CONTINUAR AL PAGO</button></div>`;
   }
 
   function paymentStep() {
-    const total = selectedPriceCents();
+    const total = Math.max(0, selectedPriceCents() - Number(state.couponDiscountCents || 0));
     const event = publishedEvents.find((item) => item.id === state.date);
     const eventName = event ? `${event.title} (${event.venue})` : 'Ágape · noche seleccionada';
     const date = event ? new Intl.DateTimeFormat('es-EC', { dateStyle: 'full', timeZone: 'UTC' }).format(new Date(`${event.eventDate}T12:00:00Z`)) : state.date;
     const ref = state.orderRef || 'AG-—';
     const proof = state.proofName ? `<p class="proof-selected">Comprobante seleccionado: <b>${safe(state.proofName)}</b></p>` : '';
-    return `<div class="form-kicker">ORDEN · ${safe(ref)}</div><h2 id="booking-title">Orden ${safe(ref)}</h2><p class="order-status">PENDIENTE</p><div class="transfer-panel order-summary"><p>${safe(eventName)}<br /><small>${safe(date)} · ${safe(event?.arrivalTime || '')}</small></p><div class="order-line"><b>1× Venta · ${safe(state.gender)}</b><b>${moneyFormat(total)}</b></div><div class="order-line order-total"><b>Total</b><b>${moneyFormat(total)}</b></div></div><section class="transfer-panel"><h3>Paga con tarjeta</h3><p>Pago inmediato y seguro con Payphone (tarjetas de crédito y débito). Tu cupo se confirma al aprobarse el cargo.</p><button type="button" class="next-button payphone-button" data-payphone>PAGAR ${moneyFormat(total)} CON TARJETA</button><p class="fine-print">Si el pago falla o lo cancelas, tu orden sigue PENDIENTE y puedes reintentar o usar la transferencia.</p><div class="payment-unavailable">Payphone está pendiente de conectar con las credenciales y el dominio autorizado de Ágape. Esta demostración no realiza cobros.</div></section><section class="transfer-panel"><h3>O paga por transferencia</h3><p>Realiza una transferencia bancaria por <b>${moneyFormat(total)}</b> y sube el comprobante desde esta página.</p><div class="bank-details"><b>Banco: Pichincha</b><b>Cuenta: 2210975691 (Ahorros)</b><b>Titular: Miguel Vega</b><b>RUC / Cédula: 1725423774</b><b>Confirmar a: miguelangel26278@gmail.com</b><b>Referencia: ${safe(ref)}</b></div><div class="other-banks"><b>OTRAS CUENTAS E INSTRUCCIONES</b><p>🟢 Produbanco</p><span>Tipo: Cuenta Digital<br />Número cuenta: 20003680663<br />Nombre: Miguel Angel Vega<br />RUC/Identificación: 1725423774<br />Correo: miguelangel26278@gmail.com<br />Celular: 0981898561</span><p>🟣 Banco Guayaquil</p><span>Ahorro # 0019775679<br />miguelangel26278@gmail.com<br />CI: 1725423774<br />Código SWIFT: GUAYECEG</span></div><label class="form-field proof-field"><span>SUBE TU COMPROBANTE</span><input type="file" name="proof" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" /><small>Formatos permitidos: JPG, PNG, WEBP o PDF · máximo 10 MB.</small></label>${proof}<button type="button" class="next-button proof-submit" data-proof-submit>YA PAGUÉ / ENVIAR COMPROBANTE</button><p class="payment-unavailable">El comprobante no se transmite ni queda guardado en esta demostración.</p></section><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><span></span></div>`;
+    return `<div class="form-kicker">ORDEN · ${safe(ref)}</div><h2 id="booking-title">Orden ${safe(ref)}</h2><p class="order-status">PENDIENTE</p><div class="transfer-panel order-summary"><p>${safe(eventName)}<br /><small>${safe(date)} · ${safe(event?.arrivalTime || '')}</small></p><div class="order-line"><b>1× Venta · ${safe(state.gender)}</b><b>${moneyFormat(total)}</b></div><div class="order-line order-total"><b>Total</b><b>${moneyFormat(total)}</b></div></div><section class="transfer-panel"><h3>Paga con tarjeta</h3><p>Pago inmediato y seguro con Payphone (tarjetas de crédito y débito). Tu cupo se confirma al aprobarse el cargo.</p><button type="button" class="next-button payphone-button" data-payphone>PAGAR ${moneyFormat(total)} CON TARJETA</button><p class="fine-print">Si el pago falla o lo cancelas, tu orden sigue PENDIENTE y puedes reintentar o usar la transferencia.</p><div class="payment-unavailable">Payphone está pendiente de conectar con las credenciales y el dominio autorizado de Ágape. Esta demostración no realiza cobros.</div></section><section class="transfer-panel"><h3>O paga por transferencia</h3><p>Realiza una transferencia bancaria por <b>${moneyFormat(total)}</b> y sube el comprobante desde esta página.</p><div class="bank-details" data-bank-primary></div><div class="other-banks" data-bank-other></div><label class="form-field proof-field"><span>SUBE TU COMPROBANTE</span><input type="file" name="proof" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" /><small>Formatos permitidos: JPG, PNG, WEBP o PDF · máximo 10 MB.</small></label>${proof}<button type="button" class="next-button proof-submit" data-proof-submit>YA PAGUÉ / ENVIAR COMPROBANTE</button><p class="payment-unavailable">El comprobante no se transmite ni queda guardado en esta demostración.</p></section><div class="booking-actions"><button class="back-button" data-back>← VOLVER</button><span></span></div>`;
   }
 
   function selectedPriceCents() {
@@ -241,6 +292,7 @@
     progressLabel.textContent = state.step <= 5 ? `PASO ${state.step} DE 5` : state.step === 6 ? `ORDEN · ${state.orderRef || 'PAGO'}` : 'ORDEN PENDIENTE';
     progressFill.style.width = `${Math.min(state.step, 5) * 20}%`;
     formHost.innerHTML = state.step === 1 ? dateStep() : state.step === 2 ? profileStep() : state.step === 3 ? cocktailStep() : state.step === 4 ? intentionStep() : state.step === 5 ? reviewStep() : state.step === 6 ? paymentStep() : doneStep();
+    applyPaymentContent();
     const input = formHost.querySelector('input:not([type=checkbox]), textarea');
     if (input && state.step > 1) input.focus({ preventScroll: true });
   }
@@ -248,7 +300,8 @@
   function openBooking(date = '') {
     state.step = 1;
     state.date = date;
-    state.name = state.age = state.gender = state.phone = state.email = state.social = state.cedula = state.cocktailType = state.cocktail = state.intention = state.payment = state.orderRef = state.proofName = '';
+    state.name = state.age = state.gender = state.phone = state.email = state.social = state.cedula = state.cocktailType = state.cocktail = state.intention = state.payment = state.orderRef = state.proofName = state.couponCode = '';
+    state.couponDiscountCents = 0;
     state.terms = false;
     render();
     if (!dialog.open) dialog.showModal();
@@ -274,6 +327,8 @@
     }
   }
   void loadPublishedEvents();
+  void loadSiteContent();
+  void loadGalleryContent();
 
   function saveFields() {
     for (const name of ['name', 'age', 'phone', 'email', 'social', 'cedula']) {
@@ -298,6 +353,42 @@
     if (state.step === 4 && !state.intention) return notify('Elige qué buscas esta noche.'), false;
     if (state.step === 5 && !state.terms) return notify('Acepta la política de privacidad y los términos para continuar.'), false;
     return true;
+  }
+
+  async function applyCoupon() {
+    const field = formHost.querySelector('[name="coupon"]');
+    const message = formHost.querySelector('.coupon-message');
+    const code = String(field?.value || '').trim().toUpperCase();
+    if (!code) { if (message) message.textContent = 'Escribe un código para validarlo.'; return; }
+    const subtotal = selectedPriceCents();
+    try {
+      const response = await fetch(`/api/public/coupons?code=${encodeURIComponent(code)}&subtotal=${subtotal}`, { cache: 'no-store' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'No se pudo validar el cupón.');
+      state.couponCode = data.code;
+      state.couponDiscountCents = Number(data.discountCents || 0);
+      render();
+      notify(`Cupón ${data.code} aplicado.`);
+    } catch (error) { if (message) message.textContent = error instanceof Error ? error.message : 'No se pudo validar el cupón.'; }
+  }
+
+  async function createReservation() {
+    saveFields();
+    const next = formHost.querySelector('[data-next]');
+    if (next) next.disabled = true;
+    try {
+      const response = await fetch('/api/public/reservations', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: state.date, name: state.name, age: Number(state.age), gender: state.gender, phone: state.phone, email: state.email, social: state.social, cedula: state.cedula, cocktail: state.cocktail, intention: state.intention, couponCode: state.couponCode, consentAccepted: state.terms }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'No se pudo registrar la solicitud.');
+      state.orderRef = data.reference;
+      setStep(6);
+    } catch (error) {
+      if (next) next.disabled = false;
+      notify(error instanceof Error ? error.message : 'No se pudo registrar la solicitud.');
+    }
   }
 
   document.addEventListener('click', (event) => {
@@ -326,11 +417,13 @@
     if (intention) { state.intention = intention.dataset.intention; formHost.querySelectorAll('[data-intention]').forEach((button) => button.classList.toggle('selected', button.dataset.intention === state.intention)); const next = formHost.querySelector('[data-next]'); if (next) next.disabled = false; return; }
     const edit = event.target.closest('[data-edit-step]');
     if (edit) { state.terms = false; setStep(Number(edit.dataset.editStep)); return; }
-    if (event.target.closest('[data-coupon]')) { const message = formHost.querySelector('.coupon-message'); if (message) message.textContent = 'La validación de cupones estará disponible al conectar el sistema de reservas.'; return; }
+    if (event.target.closest('[data-coupon]')) { void applyCoupon(); return; }
     const payment = event.target.closest('[data-payment]');
     if (payment) { state.payment = payment.dataset.payment; render(); return; }
     if (event.target.closest('[data-next]')) {
-      if (validStep()) setStep(state.step + 1);
+      if (!validStep()) return;
+      if (state.step === 5) { void createReservation(); return; }
+      setStep(state.step + 1);
       return;
     }
     if (event.target.closest('[data-back]')) { saveFields(); setStep(Math.max(1, state.step - 1)); return; }
@@ -384,7 +477,7 @@
     </script>
   
 <style>
-.order-status{color:#e2bc69;letter-spacing:.15em;font-size:14px;margin:3px 0 22px}.transfer-panel{border:1px solid #51321e;border-radius:12px;background:#19090b;padding:22px;margin:18px 0;color:#e9dfd4}.transfer-panel h3{font:500 20px var(--serif);margin:0 0 12px;color:#f0e5d8}.transfer-panel p{font-size:13px;line-height:1.65;color:#bca99d}.order-summary{padding:20px 22px}.order-summary>p{margin:0 0 17px}.order-summary small{font-size:11px;color:#ad9b90}.order-line{display:flex;justify-content:space-between;gap:14px;padding:9px 0;font-size:13px}.order-total{border-top:1px solid #493126;margin-top:3px}.payphone-button,.proof-submit{width:100%;border-radius:999px;margin:2px 0 0;min-height:48px;background:#d8b05e;color:#140d08}.fine-print{text-align:center;font-size:11px!important}.payment-unavailable{margin-top:12px;padding:10px 12px;background:#241416;border-left:2px solid #bf9652;color:#c7b6aa;font-size:11px;line-height:1.6}.bank-details{display:grid;gap:8px;background:#210a0d;padding:16px 14px;border-radius:4px;color:#f0e4d7;font-size:13px;line-height:1.45}.other-banks{margin-top:18px;border:1px solid #493126;padding:14px;border-radius:4px;color:#c5b1a3;font-size:12px;line-height:1.6}.other-banks>b{display:block;color:#f0e5d8;font-size:11px;margin-bottom:10px}.other-banks p{margin:10px 0 3px}.other-banks span{display:block}.proof-field{margin-top:18px}.proof-field input[type=file]{padding:10px;background:#14090a;border:1px solid #51321e;color:#d8c9be}.proof-field small{display:block;margin-top:7px;color:#ad9b90;font-size:10px}.proof-selected{padding:10px;background:#211316;font-size:11px!important}.booking-form .transfer-panel .payment-unavailable{font-size:10px}.info-page{position:fixed;z-index:100;inset:0;background:#0a0506;color:#efe5dc;display:none;overflow-y:auto}.info-page.open{display:block}.info-header{height:74px;position:sticky;top:0;z-index:2;background:#0d0809;border-bottom:1px solid #39272a;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(20px,7vw,90px)}.info-header .brand{color:#d2ad62}.info-mark{font:italic 40px var(--serif);line-height:1}.info-wordmark{font:20px var(--serif);letter-spacing:.18em}.info-wordmark small{display:block;font:8px var(--sans);letter-spacing:.19em;color:#b2a49a;margin-top:5px}.info-close{background:transparent;border:1px solid #5d4326;border-radius:999px;color:#dec27e;padding:11px 15px;font-size:10px;letter-spacing:.1em}.info-content{max-width:760px;margin:0 auto;padding:56px 28px 100px;font-size:15px;line-height:1.8;color:#e7ddd4}.info-content h1{font:500 clamp(34px,5vw,48px) var(--serif);margin:10px 0 24px;color:#f2e8dc}.info-content h2{font:500 22px var(--serif);margin:25px 0 5px;color:#dbbd77}.info-content p{margin:0 0 13px}.info-content a{color:#e2c582;text-underline-offset:3px}.info-card{border:1px solid #4a3027;background:#18090b;padding:20px;border-radius:12px;margin:16px 0}.info-card h2{margin:0 0 8px}.info-cta{display:inline-flex;margin-top:18px;text-decoration:none;align-items:center;justify-content:center;padding:14px 22px;border-radius:99px}
+.order-status{color:#e2bc69;letter-spacing:.15em;font-size:14px;margin:3px 0 22px}.transfer-panel{border:1px solid #51321e;border-radius:12px;background:#19090b;padding:22px;margin:18px 0;color:#e9dfd4}.transfer-panel h3{font:500 20px var(--serif);margin:0 0 12px;color:#f0e5d8}.transfer-panel p{font-size:13px;line-height:1.65;color:#bca99d}.order-summary{padding:20px 22px}.order-summary>p{margin:0 0 17px}.order-summary small{font-size:11px;color:#ad9b90}.order-line{display:flex;justify-content:space-between;gap:14px;padding:9px 0;font-size:13px}.order-total{border-top:1px solid #493126;margin-top:3px}.payphone-button,.proof-submit{width:100%;border-radius:999px;margin:2px 0 0;min-height:48px;background:#d8b05e;color:#140d08}.fine-print{text-align:center;font-size:11px!important}.payment-unavailable{margin-top:12px;padding:10px 12px;background:#241416;border-left:2px solid #bf9652;color:#c7b6aa;font-size:11px;line-height:1.6}.bank-details{display:grid;gap:8px;background:#210a0d;padding:16px 14px;border-radius:4px;color:#f0e4d7;font-size:13px;line-height:1.45;white-space:pre-line}.other-banks{margin-top:18px;border:1px solid #493126;padding:14px;border-radius:4px;color:#c5b1a3;font-size:12px;line-height:1.6;white-space:pre-line}.other-banks>b{display:block;color:#f0e5d8;font-size:11px;margin-bottom:10px}.other-banks p{margin:10px 0 3px}.other-banks span{display:block}.proof-field{margin-top:18px}.proof-field input[type=file]{padding:10px;background:#14090a;border:1px solid #51321e;color:#d8c9be}.proof-field small{display:block;margin-top:7px;color:#ad9b90;font-size:10px}.proof-selected{padding:10px;background:#211316;font-size:11px!important}.booking-form .transfer-panel .payment-unavailable{font-size:10px}.info-page{position:fixed;z-index:100;inset:0;background:#0a0506;color:#efe5dc;display:none;overflow-y:auto}.info-page.open{display:block}.info-header{height:74px;position:sticky;top:0;z-index:2;background:#0d0809;border-bottom:1px solid #39272a;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(20px,7vw,90px)}.info-header .brand{color:#d2ad62}.info-mark{font:italic 40px var(--serif);line-height:1}.info-wordmark{font:20px var(--serif);letter-spacing:.18em}.info-wordmark small{display:block;font:8px var(--sans);letter-spacing:.19em;color:#b2a49a;margin-top:5px}.info-close{background:transparent;border:1px solid #5d4326;border-radius:999px;color:#dec27e;padding:11px 15px;font-size:10px;letter-spacing:.1em}.info-content{max-width:760px;margin:0 auto;padding:56px 28px 100px;font-size:15px;line-height:1.8;color:#e7ddd4}.info-content h1{font:500 clamp(34px,5vw,48px) var(--serif);margin:10px 0 24px;color:#f2e8dc}.info-content h2{font:500 22px var(--serif);margin:25px 0 5px;color:#dbbd77}.info-content p{margin:0 0 13px}.info-content a{color:#e2c582;text-underline-offset:3px}.info-card{border:1px solid #4a3027;background:#18090b;padding:20px;border-radius:12px;margin:16px 0}.info-card h2{margin:0 0 8px}.info-cta{display:inline-flex;margin-top:18px;text-decoration:none;align-items:center;justify-content:center;padding:14px 22px;border-radius:99px}
 @media(max-width:650px){.transfer-panel{padding:16px}.bank-details{font-size:12px}.info-content{padding:34px 21px 70px;font-size:14px}.info-header{height:64px;padding:0 17px}.info-mark{font-size:32px}.info-wordmark{font-size:16px}}
 </style>
     <script id="agape-editorial-interactions">
