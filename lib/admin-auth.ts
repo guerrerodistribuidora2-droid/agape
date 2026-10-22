@@ -39,9 +39,14 @@ export async function verifyAdminCredentials(username: string, password: string)
   const expectedHash = env.AGAPE_ADMIN_PASSWORD_HASH ?? "";
   if (!expectedUser || !saltText || !expectedHash || username.length > 100 || password.length > 1024) return false;
   const userMatch = constantTimeEqual(encoder.encode(username.trim()), encoder.encode(expectedUser));
-  const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: decode(saltText), iterations: 310_000, hash: "SHA-256" }, key, 256);
-  return userMatch && constantTimeEqual(new Uint8Array(bits), decode(expectedHash));
+  try {
+    const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]);
+    // Cloudflare Workers caps Web Crypto PBKDF2 deriveBits at 100,000 iterations.
+    const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: decode(saltText), iterations: 100_000, hash: "SHA-256" }, key, 256);
+    return userMatch && constantTimeEqual(new Uint8Array(bits), decode(expectedHash));
+  } catch {
+    return false;
+  }
 }
 
 async function signingKey() {
