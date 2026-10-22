@@ -11,7 +11,7 @@ export default async function AdminPage() {
     return (
       <main className="admin-gate">
         <section className="admin-gate-card">
-          <div className="admin-brand-mark">Á</div>
+          <img className="admin-brand-image" src="/agape-mark.png" alt="Ágape" />
           <p className="admin-eyebrow">ÁGAPE · ORGANIZADORES</p>
           <h1>Inicia sesión para continuar.</h1>
           <p>El panel está protegido y solo lo pueden usar organizadores autorizados.</p>
@@ -27,7 +27,7 @@ export default async function AdminPage() {
     return (
       <main className="admin-gate">
         <section className="admin-gate-card">
-          <div className="admin-brand-mark">Á</div>
+          <img className="admin-brand-image" src="/agape-mark.png" alt="Ágape" />
           <p className="admin-eyebrow">ÁGAPE · ORGANIZADORES</p>
           <h1>Tu cuenta aún no tiene acceso.</h1>
           <p>Solicita al propietario del sitio que autorice tu correo como organizador.</p>
@@ -39,3 +39,4 @@ export default async function AdminPage() {
 
   return <AdminDashboard organizerName={user.fullName ?? user.email} />;
 }
+

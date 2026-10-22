@@ -146,7 +146,7 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
   return (
     <main className="admin-app">
       <aside className="admin-sidebar">
-        <a className="admin-logo" href="/" aria-label="Volver a Ágape"><img src="/agape-logo.png" alt="Ágape · Conexión humana real" /></a>
+        <a className="admin-logo" href="/" aria-label="Volver a Ágape"><img src="/agape-logo-transparent.png" alt="Ágape · Conexión humana real" /></a>
         <div className="sidebar-caption">GESTIÓN</div>
         <a className="sidebar-link active" href="#eventos"><span>◫</span> Eventos</a>
         <a className="sidebar-link" href="#ayuda"><span>◇</span> Guía rápida</a>
@@ -213,3 +213,4 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
     </main>
   );
 }
+
