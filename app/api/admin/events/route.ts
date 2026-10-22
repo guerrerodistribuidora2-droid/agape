@@ -112,8 +112,16 @@ export async function GET(request: Request) {
   const { results } = await env.DB.prepare(
     `SELECT id, title, venue, description, event_date, arrival_time, start_time,
             min_age, max_age, women_capacity, men_capacity,
-            women_price_cents, men_price_cents, status, image_key, created_at, updated_at
-       FROM events ORDER BY event_date ASC, start_time ASC`,
+            women_price_cents, men_price_cents, status, image_key, created_at, updated_at,
+            COALESCE(paid.confirmed_seats, 0) AS confirmed_seats
+       FROM events
+       LEFT JOIN (
+         SELECT event_id, COUNT(*) AS confirmed_seats
+           FROM reservations
+          WHERE status IN ('payment_confirmed', 'approved')
+          GROUP BY event_id
+       ) paid ON paid.event_id = events.id
+      ORDER BY events.event_date ASC, events.start_time ASC`,
   ).all();
   const events = results.map((row) => ({
     id: row.id, title: row.title, venue: row.venue, description: row.description,
@@ -121,6 +129,7 @@ export async function GET(request: Request) {
     minAge: row.min_age, maxAge: row.max_age, womenCapacity: row.women_capacity,
     menCapacity: row.men_capacity, womenPriceCents: row.women_price_cents,
     menPriceCents: row.men_price_cents, status: row.status, imageUrl: eventImageUrl(row.image_key),
+    confirmedSeats: Number(row.confirmed_seats || 0),
     createdAt: row.created_at, updatedAt: row.updated_at,
   }));
   return Response.json({ events }, { headers: { "Cache-Control": "no-store" } });
@@ -132,6 +141,36 @@ export async function POST(request: Request) {
   if (!env.DB) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
 
   const { body, image } = await readSubmission(request);
+  if (body?.action === "seed_demo") {
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Guayaquil" }).format(new Date());
+    const base = new Date(`${today}T12:00:00Z`);
+    const samples = [
+      { key: "bolera", title: "DEMO · La Bolera · Jueves", days: 14, minAge: 30, maxAge: 45, capacity: 12, price: 3000 },
+      { key: "sobremesa", title: "DEMO · Conversaciones de sábado", days: 21, minAge: 40, maxAge: 55, capacity: 12, price: 2800 },
+      { key: "noches", title: "DEMO · Noches por edades", days: 28, minAge: 25, maxAge: 37, capacity: 18, price: 2500 },
+    ];
+    const existing = await env.DB.prepare("SELECT title FROM events WHERE title LIKE 'DEMO · %'").all<{ title: string }>();
+    const existingTitles = new Set(existing.results.map((row) => row.title));
+    let created = 0;
+    for (const sample of samples) {
+      if (existingTitles.has(sample.title)) continue;
+      const date = new Date(base);
+      date.setUTCDate(date.getUTCDate() + sample.days);
+      await env.DB.prepare(
+        `INSERT INTO events (id, title, venue, description, event_date, arrival_time,
+          start_time, min_age, max_age, women_capacity, men_capacity,
+          women_price_cents, men_price_cents, status, image_key)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', NULL)`,
+      ).bind(
+        crypto.randomUUID(), sample.title, "Quito · sede por confirmar",
+        "BORRADOR DE EJEMPLO: reemplaza fecha, sede, descripción y portada antes de publicar.",
+        date.toISOString().slice(0, 10), "19:00", "19:30", sample.minAge,
+        sample.maxAge, sample.capacity, sample.capacity, sample.price, sample.price,
+      ).run();
+      created += 1;
+    }
+    return Response.json({ created, message: created ? `${created} borradores de ejemplo creados. No son visibles para clientes.` : "Los borradores de ejemplo ya existen." }, { status: 201 });
+  }
   const id = typeof body?.id === "string" && /^[0-9a-f-]{36}$/i.test(body.id) ? body.id : crypto.randomUUID();
   const payload = parsePayload(body, id);
   if (!payload) return Response.json({ error: "Revisa los campos del evento." }, { status: 400 });

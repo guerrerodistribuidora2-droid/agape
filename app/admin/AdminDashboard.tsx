@@ -18,11 +18,12 @@ type EventRecord = {
   menCapacity: number;
   womenPriceCents: number;
   menPriceCents: number;
+  confirmedSeats: number;
   status: "draft" | "published" | "archived";
   imageUrl: string | null;
 };
 
-type EventDraft = Omit<EventRecord, "id" | "status" | "imageUrl"> & { status: "draft" | "published"; imageKey: string | null };
+type EventDraft = Omit<EventRecord, "id" | "status" | "imageUrl" | "confirmedSeats"> & { status: "draft" | "published"; imageKey: string | null };
 
 const emptyDraft: EventDraft = {
   title: "", venue: "Quito, Ecuador", description: "", eventDate: "", arrivalTime: "19:00",
@@ -155,6 +156,26 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
     await loadEvents();
   }
 
+  async function createDemoEvents() {
+    setSaving(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "seed_demo" }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No se pudieron crear los ejemplos.");
+      setMessage(data.message || "Borradores de ejemplo listos.");
+      await loadEvents();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Error al crear ejemplos.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <main className="admin-app">
       <aside className="admin-sidebar">
@@ -185,17 +206,35 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
             <div className="panel-heading"><div><h2>Tu agenda</h2><p>Administra lo que verá el público.</p></div><button className="refresh-button" onClick={() => void loadEvents()} aria-label="Actualizar lista">↻</button></div>
             <div className="event-toolbar"><div className="admin-search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar evento o lugar" /></div><div className="filter-tabs" aria-label="Filtrar eventos">{(["all", "published", "draft", "archived"] as const).map((key) => <button key={key} className={filter === key ? "selected" : ""} onClick={() => setFilter(key)}>{key === "all" ? "Todos" : key === "published" ? "Publicados" : key === "draft" ? "Borradores" : "Archivados"}</button>)}</div></div>
 
+            <section className="occupancy-demo" aria-labelledby="occupancy-demo-title">
+              <div className="occupancy-demo-heading"><div><span>VISTA DE PRUEBA</span><h3 id="occupancy-demo-title">Así se mueve el aforo</h3></div><small>Simulación · no son reservas reales</small></div>
+              <p>La agenda pública solo suma pagos confirmados. Estos ejemplos sirven para visualizar la tabla y sus porcentajes.</p>
+              <div className="occupancy-demo-rows">
+                {[{ name: "La Bolera · Jueves", women: 10, womenTotal: 12, men: 10, menTotal: 12 }, { name: "Conversaciones · Sábado", women: 8, womenTotal: 12, men: 7, menTotal: 12 }, { name: "Noches por edades", women: 14, womenTotal: 18, men: 11, menTotal: 18 }].map((sample) => {
+                  const used = sample.women + sample.men;
+                  const capacity = sample.womenTotal + sample.menTotal;
+                  const percent = Math.round(used / capacity * 100);
+                  return <div className="occupancy-demo-row" key={sample.name}><div className="occupancy-demo-top"><b>{sample.name}</b><strong>{percent}%</strong></div><div className="occupancy-track"><i style={{ width: `${percent}%` }} /></div><small>Mujeres {sample.women}/{sample.womenTotal} · Hombres {sample.men}/{sample.menTotal} · {used}/{capacity} lugares confirmados</small></div>;
+                })}
+              </div>
+              <button type="button" className="demo-events-button" onClick={() => void createDemoEvents()} disabled={saving}>{saving ? "Creando…" : "＋ Crear 3 eventos demo como borradores"}</button>
+            </section>
+
             {message && <div className="admin-message" role="status">{message}</div>}
             {loading ? <div className="empty-events"><span className="loading-orbit">◌</span><b>Cargando agenda</b><p>Un momento mientras sincronizamos tus eventos.</p></div> : filteredEvents.length === 0 ? <div className="empty-events"><span>✳</span><b>{events.length ? "No hay resultados" : "Tu próxima experiencia empieza aquí."}</b><p>{events.length ? "Prueba otro filtro o búsqueda." : "Crea un evento y publícalo cuando esté listo para recibir reservas."}</p><button onClick={createEvent}>Crear primer evento <span>→</span></button></div> : (
-              <div className="event-table-wrap"><table className="event-table"><thead><tr><th>EVENTO</th><th>FECHA Y HORA</th><th>RANGO DE EDAD</th><th>CUPOS</th><th>PRECIO DESDE</th><th>ESTADO</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{filteredEvents.map((event) => <tr key={event.id}>
+              <div className="event-table-wrap"><table className="event-table"><thead><tr><th>EVENTO</th><th>FECHA Y HORA</th><th>RANGO DE EDAD</th><th>CUPOS</th><th>AFORO PAGADO</th><th>PRECIO DESDE</th><th>ESTADO</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{filteredEvents.map((event) => {
+                const capacity = event.womenCapacity + event.menCapacity;
+                const occupancy = capacity > 0 ? Math.min(100, Math.round(event.confirmedSeats / capacity * 100)) : 0;
+                return <tr key={event.id}>
                 <td><div className="table-event-name"><span className="event-monogram">{event.title.slice(0, 1).toUpperCase()}</span><div><b>{event.title}</b><small>{event.venue}</small></div></div></td>
                 <td><b>{dateLabel(event.eventDate)}</b><small>{event.arrivalTime} · empieza {event.startTime}</small></td>
                 <td>{event.minAge}–{event.maxAge} años</td>
-                <td>{event.womenCapacity + event.menCapacity} <small>lugares</small></td>
+                <td>{capacity} <small>lugares</small></td>
+                <td><div className="table-occupancy"><b>{occupancy}%</b><small>{event.confirmedSeats}/{capacity}</small><div className="occupancy-track"><i style={{ width: `${occupancy}%` }} /></div></div></td>
                 <td>{currency(Math.min(event.womenPriceCents, event.menPriceCents))}</td>
                 <td><span className={`status-badge ${event.status}`}>{event.status === "published" ? "Publicado" : event.status === "draft" ? "Borrador" : "Archivado"}</span></td>
                 <td><div className="row-actions"><button onClick={() => editEvent(event)} aria-label={`Editar ${event.title}`}>Editar</button>{event.status !== "archived" && <button className="archive-action" onClick={() => void archiveEvent(event)} aria-label={`Archivar ${event.title}`}>Archivar</button>}</div></td>
-              </tr>)}</tbody></table></div>
+              </tr>})}</tbody></table></div>
             )}
           </section>
 

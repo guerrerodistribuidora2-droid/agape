@@ -24,6 +24,18 @@
       @media(max-width:430px){.moments-head{display:block}.moments-head .gallery-controls{justify-content:flex-end;margin-top:16px}.circular-gallery{height:340px}.circular-slide{width:86vw}.hero .hero-actions{gap:17px;flex-wrap:wrap}.hero .hero-actions .button{min-height:48px}.hero .text-link{color:#f1dfcb}}
       @media(prefers-reduced-motion:reduce){.hero-photo{animation:none}.reveal-on-scroll{opacity:1;transform:none;transition:none}.scroll-story-frame,.scroll-story-frame>img,.circular-slide{transition:none}.event-card:after{display:none}}
     </style>
+    <style>
+      .public-capacity{width:min(100%,700px);margin:36px auto 44px;padding:23px 25px;background:#18090d;border:1px solid #493039;border-radius:12px;color:#e9d9c5}
+      .public-capacity-top,.event-public-occupancy>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:14px}
+      .public-capacity-top span,.event-public-occupancy>div:first-child span{font-size:9px;letter-spacing:.2em;color:#cdbb9f}
+      .public-capacity-top b,.event-public-occupancy>div:first-child b{font-size:12px;letter-spacing:.08em;color:#f1d28a}
+      .public-capacity-track,.occupancy-track{height:6px;border-radius:20px;background:#392026;overflow:hidden;margin:10px 0}
+      .public-capacity-track i,.occupancy-track i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#9a7137,#f0d797);transition:width .8s cubic-bezier(.2,.7,.2,1)}
+      .public-capacity>small,.event-public-occupancy>small{font-size:10px;color:#a99589}
+      .event-public-occupancy{margin:20px 0 17px;padding:13px 14px;border:1px solid #45282e;border-radius:9px;background:#14080b}
+      .event-public-occupancy .public-capacity-track{margin:9px 0 7px}
+      @media(max-width:650px){.public-capacity{margin:23px auto 28px;padding:17px 16px}.public-capacity>small,.event-public-occupancy>small{font-size:9px}}
+    </style>
   </head>
   <body>
     <header class="site-header">
@@ -61,12 +73,9 @@
 
       <section class="section nights-section" id="noches">
         <div class="section-head"><div><div class="eyebrow dark"><span class="eyebrow-line"></span> LA AGENDA</div><h2>Una noche para<br /><em>conocerse distinto.</em></h2></div><p>Cada edición tiene su propia energía, grupo de edad y aforo cuidado. Elige una noche que se sienta como tú.</p></div>
-        <div class="event-notice"><span class="notice-icon">i</span><p><b>Próximas fechas por anunciar.</b> Las fechas y precios de la edición anterior ya finalizaron. Estas tarjetas muestran el recorrido de reserva con datos de ejemplo.</p><button class="notice-close" aria-label="Cerrar aviso">×</button></div>
-        <div class="event-grid">
-          <article class="event-card event-featured"><div class="event-art art-wine"><span class="event-number">01 / JUEVES</span><span class="event-orbit-mini"></span><span class="event-symbol">✳</span><span class="event-art-caption">UNA CITA CON<br />LA CONVERSACIÓN</span></div><div class="event-info"><div class="event-meta"><span>EDICIÓN DE EJEMPLO</span><span class="capacity"><i></i> AFORO POR CONFIRMAR</span></div><h3>La noche de la mesa larga</h3><p>Un grupo pensado para conversar sin apuro y encontrarse con nuevas perspectivas.</p><div class="event-tags"><span>GRUPO 40—55</span><span>QUITO</span><span>AFORO CUIDADO</span></div><button class="event-cta" data-book data-date="Jueves · grupo 40–55">Ver cómo se reserva <span>↗</span></button></div></article>
-          <article class="event-card"><div class="event-art art-olive"><span class="event-number">02 / VIERNES</span><span class="event-orbit-mini"></span><span class="event-symbol">☼</span><span class="event-art-caption">HAY ALGO<br />EN COMÚN</span></div><div class="event-info"><div class="event-meta"><span>EDICIÓN DE EJEMPLO</span><span class="capacity"><i></i> AFORO POR CONFIRMAR</span></div><h3>La sobremesa inesperada</h3><p>Una noche cálida para salir de la rutina y dejar que la curiosidad haga lo suyo.</p><div class="event-tags"><span>GRUPO 30—45</span><span>QUITO</span><span>AFORO CUIDADO</span></div><button class="event-cta" data-book data-date="Viernes · grupo 30–45">Ver cómo se reserva <span>↗</span></button></div></article>
-          <article class="event-card"><div class="event-art art-blue"><span class="event-number">03 / SÁBADO</span><span class="event-orbit-mini"></span><span class="event-symbol">✷</span><span class="event-art-caption">UNA NOCHE<br />SIN FILTROS</span></div><div class="event-info"><div class="event-meta"><span>EDICIÓN DE EJEMPLO</span><span class="capacity"><i></i> AFORO POR CONFIRMAR</span></div><h3>La chispa de conocerse</h3><p>Rondas ligeras y preguntas que abren espacio a una conversación real.</p><div class="event-tags"><span>GRUPO 25—37</span><span>QUITO</span><span>AFORO CUIDADO</span></div><button class="event-cta" data-book data-date="Sábado · grupo 25–37">Ver cómo se reserva <span>↗</span></button></div></article>
-        </div>
+        <div class="event-notice"><span class="notice-icon">i</span><p><b>Aforo actualizado en tiempo real.</b> El porcentaje refleja únicamente reservas con pago confirmado.</p></div>
+        <div class="public-capacity" data-capacity-summary hidden></div>
+        <div class="event-grid"><div class="events-empty"><span>✳</span><b>Nuevas fechas en preparación.</b><p>El equipo Ágape anunciará pronto las próximas experiencias.</p></div></div>
       </section>
 
             <section class="scroll-story" id="una-noche" aria-label="Una noche Ágape">
@@ -143,6 +152,7 @@
   const progressFill = document.querySelector('#progress-fill');
   const toast = document.querySelector('.toast');
   const eventGrid = document.querySelector('.event-grid');
+  const capacitySummary = document.querySelector('[data-capacity-summary]');
   const infoPage = document.querySelector('#info-page');
   const infoContent = document.querySelector('#info-content');
   const infoCopy = {
@@ -317,13 +327,23 @@
       publishedEvents = Array.isArray(data.events) ? data.events : [];
       const palette = ['art-wine', 'art-olive', 'art-blue'];
       const symbols = ['✳', '☼', '✷'];
+      const confirmed = publishedEvents.reduce((sum, event) => sum + Number(event.confirmedSeats || 0), 0);
+      const capacity = publishedEvents.reduce((sum, event) => sum + Number(event.totalCapacity || 0), 0);
+      const percent = capacity ? Math.min(100, Math.round(confirmed / capacity * 100)) : 0;
+      if (capacitySummary) {
+        capacitySummary.hidden = !publishedEvents.length;
+        capacitySummary.innerHTML = publishedEvents.length ? `<div class="public-capacity-top"><span>AFORO GENERAL ÁGAPE</span><b>${percent}%</b></div><div class="public-capacity-track"><i style="width:${percent}%"></i></div><small>${confirmed} de ${capacity} cupos confirmados · solo pagos aprobados</small>` : '';
+      }
       if (eventGrid) eventGrid.innerHTML = publishedEvents.length ? publishedEvents.map((event, index) => {
         const date = new Intl.DateTimeFormat('es-EC', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${event.eventDate}T12:00:00Z`));
         const places = Number(event.womenCapacity || 0) + Number(event.menCapacity || 0);
+        const occupied = Number(event.confirmedSeats || 0);
+        const occupancy = Number(event.occupancyPercent || 0);
         const price = Math.min(Number(event.womenPriceCents || 0), Number(event.menPriceCents || 0));
-        return `<article class="event-card"><div class="event-art ${palette[index % palette.length]}${event.imageUrl ? ' has-photo' : ''}">${event.imageUrl ? `<img class="event-cover-photo" src="${safe(event.imageUrl)}" alt="Foto de ${safe(event.title)}" loading="lazy" />` : ''}<span class="event-number">${String(index + 1).padStart(2, '0')} / ${safe(date.toLocaleUpperCase('es-EC'))}</span><span class="event-orbit-mini"></span><span class="event-symbol">${symbols[index % symbols.length]}</span><span class="event-art-caption">UNA NOCHE<br />PARA CONECTAR</span></div><div class="event-info"><div class="event-meta"><span>PRÓXIMA EXPERIENCIA</span><span class="capacity"><i></i> ${places} LUGARES</span></div><h3>${safe(event.title)}</h3><p>${safe(event.description || 'Una experiencia para conversar y encontrarse con nuevas perspectivas.')}</p><div class="event-tags"><span>GRUPO ${event.minAge}—${event.maxAge}</span><span>${safe(event.venue)}</span><span>DESDE $${(price / 100).toFixed(2)}</span></div><button class="event-cta" data-book data-date="${safe(event.id)}">Ver cómo se reserva <span>↗</span></button></div></article>`;
+        return `<article class="event-card"><div class="event-art ${palette[index % palette.length]}${event.imageUrl ? ' has-photo' : ''}">${event.imageUrl ? `<img class="event-cover-photo" src="${safe(event.imageUrl)}" alt="Foto de ${safe(event.title)}" loading="lazy" />` : ''}<span class="event-number">${String(index + 1).padStart(2, '0')} / ${safe(date.toLocaleUpperCase('es-EC'))}</span><span class="event-orbit-mini"></span><span class="event-symbol">${symbols[index % symbols.length]}</span><span class="event-art-caption">UNA NOCHE<br />PARA CONECTAR</span></div><div class="event-info"><div class="event-meta"><span>PRÓXIMA EXPERIENCIA</span><span class="capacity"><i></i> ${places} LUGARES</span></div><h3>${safe(event.title)}</h3><p>${safe(event.description || 'Una experiencia para conversar y encontrarse con nuevas perspectivas.')}</p><div class="event-tags"><span>GRUPO ${event.minAge}—${event.maxAge}</span><span>${safe(event.venue)}</span><span>DESDE $${(price / 100).toFixed(2)}</span></div><div class="event-public-occupancy"><div><span>CUPOS CONFIRMADOS</span><b>${occupancy}%</b></div><div class="public-capacity-track"><i style="width:${occupancy}%"></i></div><small>${occupied} de ${places} · pagos confirmados</small></div><button class="event-cta" data-book data-date="${safe(event.id)}">Ver cómo se reserva <span>↗</span></button></div></article>`;
       }).join('') : '<div class="events-empty"><span>✳</span><b>Nuevas fechas en preparación.</b><p>El equipo Ágape anunciará pronto las próximas experiencias.</p></div>';
     } catch {
+      if (capacitySummary) capacitySummary.hidden = true;
       if (eventGrid) eventGrid.innerHTML = '<div class="events-empty"><span>✳</span><b>Nuevas fechas en preparación.</b><p>El equipo Ágape anunciará pronto las próximas experiencias.</p></div>';
     }
   }

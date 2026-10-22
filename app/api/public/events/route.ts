@@ -13,10 +13,17 @@ export async function GET() {
   const { results } = await env.DB.prepare(
     `SELECT id, title, venue, description, event_date, arrival_time, start_time,
             min_age, max_age, women_capacity, men_capacity,
-            women_price_cents, men_price_cents, image_key
+            women_price_cents, men_price_cents, image_key,
+            COALESCE(paid.confirmed_seats, 0) AS confirmed_seats
        FROM events
-      WHERE status = 'published' AND event_date >= ?
-      ORDER BY event_date ASC, start_time ASC`,
+       LEFT JOIN (
+         SELECT event_id, COUNT(*) AS confirmed_seats
+           FROM reservations
+          WHERE status IN ('payment_confirmed', 'approved')
+          GROUP BY event_id
+       ) paid ON paid.event_id = events.id
+      WHERE events.status = 'published' AND events.event_date >= ?
+      ORDER BY events.event_date ASC, events.start_time ASC`,
   )
     .bind(today)
     .all();
@@ -35,6 +42,11 @@ export async function GET() {
     menCapacity: row.men_capacity,
     womenPriceCents: row.women_price_cents,
     menPriceCents: row.men_price_cents,
+    totalCapacity: Number(row.women_capacity || 0) + Number(row.men_capacity || 0),
+    confirmedSeats: Number(row.confirmed_seats || 0),
+    occupancyPercent: Number(row.women_capacity || 0) + Number(row.men_capacity || 0) > 0
+      ? Math.min(100, Math.round(Number(row.confirmed_seats || 0) / (Number(row.women_capacity || 0) + Number(row.men_capacity || 0)) * 100))
+      : 0,
     imageUrl: typeof row.image_key === "string" ? `/api/public/events/media/${row.id}` : null,
   }));
 
