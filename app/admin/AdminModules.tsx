@@ -93,7 +93,8 @@ export default function AdminModules({ section, organizerName }: { section: Sect
     try {
       const response = await fetch(`/api/admin/customers/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
       const data = await response.json(); if (!response.ok) throw new Error(data.error || "No se pudo actualizar la solicitud.");
-      setMessage(data.emailSent ? "Pago confirmado y pase QR enviado por correo." : data.emailError ? `Estado actualizado. Correo pendiente: ${data.emailError}` : "Estado de la solicitud actualizado."); await load();
+      const feedback = data.emailSent ? "Pago confirmado y pase QR enviado por correo." : data.emailError ? `Estado actualizado. Correo pendiente: ${data.emailError}` : "Estado de la solicitud actualizado.";
+      await load(); setMessage(feedback);
     } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo actualizar la solicitud."); }
     finally { setBusy(false); }
   }
@@ -103,7 +104,8 @@ export default function AdminModules({ section, organizerName }: { section: Sect
     try {
       const response = await fetch(`/api/admin/customers/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "resend_confirmation" }) });
       const data = await response.json(); if (!response.ok) throw new Error(data.error || "No se pudo enviar el pase.");
-      setMessage(data.alreadySent ? "El correo ya constaba como enviado; no se duplicó." : "Pase QR enviado al correo registrado."); await load();
+      const feedback = data.alreadySent ? "El correo ya constaba como enviado; no se duplicó." : "Pase QR enviado al correo registrado.";
+      await load(); setMessage(feedback);
     } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo enviar el pase."); }
     finally { setBusy(false); }
   }
