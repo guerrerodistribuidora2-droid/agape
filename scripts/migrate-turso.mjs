@@ -1,11 +1,17 @@
 import { readFile } from "node:fs/promises";
 import { createClient } from "@libsql/client";
 
-const envText = await readFile(new URL("../.env.local", import.meta.url), "utf8");
-const env = Object.fromEntries(envText.split(/\r?\n/).map((line) => {
+let envText = "";
+try { envText = await readFile(new URL("../.env.local", import.meta.url), "utf8"); } catch { /* Vercel/CI supplies process environment variables. */ }
+const localEnv = Object.fromEntries(envText.split(/\r?\n/).map((line) => {
   const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|(.*))\s*$/);
   return match ? [match[1], match[2] ?? match[3] ?? match[4] ?? ""] : null;
 }).filter(Boolean));
+const env = {
+  ...localEnv,
+  TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL || localEnv.TURSO_DATABASE_URL,
+  TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN || localEnv.TURSO_AUTH_TOKEN,
+};
 if (!env.TURSO_DATABASE_URL || !env.TURSO_AUTH_TOKEN) throw new Error("Configura TURSO_DATABASE_URL y TURSO_AUTH_TOKEN en .env.local.");
 
 const sql = await readFile(new URL("../drizzle/0004_turso_schema.sql", import.meta.url), "utf8");

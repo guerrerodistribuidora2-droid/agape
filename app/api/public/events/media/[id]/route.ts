@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { env } from "@/lib/runtime-env";
 import { getDatabase } from "../../../../../../lib/turso";
 import { getChatGPTUser } from "../../../../../chatgpt-auth";
 import { isOrganizer } from "../../../../../../lib/admin-auth";

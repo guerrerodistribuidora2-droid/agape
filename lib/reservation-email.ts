@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { env } from "@/lib/runtime-env";
 import { getDatabase } from "./turso";
 import QRCode from "qrcode";
 import { ensurePaymentSchema } from "./payment-schema";

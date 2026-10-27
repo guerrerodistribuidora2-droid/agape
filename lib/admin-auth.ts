@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { env } from "@/lib/runtime-env";
 import type { ChatGPTUser } from "../app/chatgpt-auth";
 
 const SESSION_COOKIE = "agape_admin_session";
