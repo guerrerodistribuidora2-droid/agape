@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+.git
+.github
+.next
+.vercel
+node_modules
+.wrangler
+.sites-runtime
+.agents
+.codex
+coverage
+outputs
+work
