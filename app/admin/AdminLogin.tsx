@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+type ApiResponse = { error?: string };
+
 export default function AdminLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -18,7 +20,7 @@ export default function AdminLogin() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-      const data = await response.json();
+      const data = await response.json() as ApiResponse;
       if (!response.ok) throw new Error(data.error || "No se pudo iniciar sesión.");
       window.location.replace("/admin");
     } catch (cause) {

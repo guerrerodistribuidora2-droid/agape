@@ -24,6 +24,7 @@ type EventRecord = {
 };
 
 type EventDraft = Omit<EventRecord, "id" | "status" | "imageUrl" | "confirmedSeats"> & { status: "draft" | "published"; imageKey: string | null };
+type ApiResponse = { events?: EventRecord[]; error?: string; message?: string };
 
 const emptyDraft: EventDraft = {
   title: "", venue: "Quito, Ecuador", description: "", eventDate: "", arrivalTime: "19:00",
@@ -57,7 +58,7 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
     setLoading(true);
     try {
       const response = await fetch("/api/admin/events", { cache: "no-store" });
-      const data = await response.json();
+      const data = await response.json() as ApiResponse;
       if (!response.ok) throw new Error(data.error || "No se pudieron cargar los eventos.");
       setEvents(data.events);
       setMessage("");
@@ -132,7 +133,7 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
         method: editingId ? "PUT" : "POST",
         body: form,
       });
-      const data = await response.json();
+      const data = await response.json() as ApiResponse;
       if (!response.ok) throw new Error(data.error || "No se pudo guardar el evento.");
       setModalOpen(false);
       setMessage(editingId ? "Cambios guardados." : "Evento creado.");
@@ -147,7 +148,7 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
   async function archiveEvent(event: EventRecord) {
     if (!window.confirm(`¿Archivar “${event.title}”? Dejará de mostrarse al público, pero seguirá en el historial.`)) return;
     const response = await fetch(`/api/admin/events/${event.id}`, { method: "DELETE" });
-    const data = await response.json();
+    const data = await response.json() as ApiResponse;
     if (!response.ok) {
       setMessage(data.error || "No se pudo archivar el evento.");
       return;
@@ -165,7 +166,7 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "seed_demo" }),
       });
-      const data = await response.json();
+      const data = await response.json() as ApiResponse;
       if (!response.ok) throw new Error(data.error || "No se pudieron crear los ejemplos.");
       setMessage(data.message || "Borradores de ejemplo listos.");
       await loadEvents();
