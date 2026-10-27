@@ -19,15 +19,17 @@ function allowed(bytes: Uint8Array, type: string) {
 }
 export async function POST(request: Request, context: { params: Promise<{ reference: string }> }) {
   if (!sameOrigin(request)) return Response.json({ error: "Origen no permitido." }, { status: 403 });
-  if (!getDatabase(env) || !env.BUCKET) return Response.json({ error: "La carga de comprobantes no está disponible." }, { status: 503 });
-  await ensurePaymentSchema(getDatabase(env));
+  const db = getDatabase(env);
+  const bucket = env.BUCKET;
+  if (!db || !bucket) return Response.json({ error: "La carga de comprobantes no está disponible." }, { status: 503 });
+  await ensurePaymentSchema(db);
   const { reference } = await context.params;
   const form = await request.formData().catch(() => null);
   const token = String(form?.get("uploadToken") || "");
   const file = form?.get("proof");
   if (!/^[a-f0-9]{64}$/.test(token) || !(file instanceof File)) return Response.json({ error: "Falta el comprobante o el permiso temporal de carga." }, { status: 400 });
   if (file.size < 1 || file.size > 10 * 1024 * 1024) return Response.json({ error: "El archivo debe pesar hasta 10 MB." }, { status: 400 });
-  const reservation = await getDatabase(env).prepare("SELECT id, status, upload_token_hash FROM reservations WHERE reference = ?").bind(reference).first<{ id: string; status: string; upload_token_hash: string | null }>();
+  const reservation = await db.prepare("SELECT id, status, upload_token_hash FROM reservations WHERE reference = ?").bind(reference).first<{ id: string; status: string; upload_token_hash: string | null }>();
   if (!reservation || !reservation.upload_token_hash || await sha256(token) !== reservation.upload_token_hash) return Response.json({ error: "No se pudo validar esta orden. Vuelve a iniciar la solicitud." }, { status: 403 });
   if (["payment_confirmed", "approved", "cancelled", "refunded"].includes(reservation.status)) return Response.json({ error: "Esta orden no puede recibir un comprobante en su estado actual." }, { status: 409 });
   const type = file.type.toLowerCase();
@@ -35,12 +37,12 @@ export async function POST(request: Request, context: { params: Promise<{ refere
   if (!allowed(bytes, type)) return Response.json({ error: "El contenido no coincide con un JPG, PNG, WebP o PDF válido." }, { status: 415 });
   const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" } as Record<string, string>)[type];
   const key = `receipts/${reservation.id}/${crypto.randomUUID()}.${extension}`;
-  await env.BUCKET.put(key, bytes, { httpMetadata: { contentType: type } });
+  await bucket.put(key, bytes, { httpMetadata: { contentType: type } });
   try {
-    await getDatabase(env).prepare("UPDATE reservations SET payment_method = 'transfer', proof_storage_key = ?, proof_file_name = ?, proof_uploaded_at = CURRENT_TIMESTAMP, status = 'payment_review' WHERE id = ?")
+    await db.prepare("UPDATE reservations SET payment_method = 'transfer', proof_storage_key = ?, proof_file_name = ?, proof_uploaded_at = CURRENT_TIMESTAMP, status = 'payment_review' WHERE id = ?")
       .bind(key, file.name.replace(/[\\/\0-\x1f]/g, "_").slice(0, 180) || `comprobante.${extension}`, reservation.id).run();
   } catch (error) {
-    await env.BUCKET.delete(key);
+    await bucket.delete(key);
     throw error;
   }
   return Response.json({ ok: true, status: "payment_review" }, { headers: { "Cache-Control": "no-store" } });
