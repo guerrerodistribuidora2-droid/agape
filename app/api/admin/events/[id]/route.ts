@@ -10,9 +10,10 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
   if (origin && new URL(origin).origin !== new URL(request.url).origin) {
     return Response.json({ error: "Origen no permitido." }, { status: 403 });
   }
-  if (!getDatabase(env)) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
+  const db = getDatabase(env);
+  if (!db) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
   const { id } = await context.params;
-  const result = await getDatabase(env).prepare(
+  const result = await db.prepare(
     "UPDATE events SET status = 'archived', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
   ).bind(id).run();
   if (!result.meta.changes) return Response.json({ error: "No se encontró el evento." }, { status: 404 });
