@@ -8,6 +8,7 @@ type GalleryItem = { id: string; caption: string; altText: string; imageUrl: str
 type Coupon = { id: string; code: string; discountType: "percent" | "fixed"; amount: number; active: boolean; startsAt: string | null; endsAt: string | null; maxUses: number | null; usedCount: number };
 type Customer = { id: string; reference: string; eventTitle: string; eventDate: string; name: string; age: number; gender: string; phone: string; email: string; social: string; cedula: string; cocktail: string; intention: string; couponCode: string | null; totalCents: number; status: string; createdAt: string; paymentMethod: string | null; providerTransactionId: string | null; hasReceipt: boolean; receiptFileName: string | null; proofUploadedAt: string | null; confirmationEmailSentAt: string | null };
 type Settings = { contact_email: string; whatsapp_number: string; instagram_url: string; bank_primary: string; bank_other: string; hero_title: string; hero_lede: string; agenda_intro: string; story_title: string; story_text: string; closing_title: string };
+type ApiResponse = { error?: string; settings?: Partial<Settings>; images?: GalleryItem[]; coupons?: Coupon[]; customers?: Customer[]; emailSent?: boolean; emailError?: string; alreadySent?: boolean };
 const defaultSettings: Settings = { contact_email: "", whatsapp_number: "", instagram_url: "", bank_primary: "", bank_other: "", hero_title: "", hero_lede: "", agenda_intro: "", story_title: "", story_text: "", closing_title: "" };
 
 const sectionTitle: Record<Section, { title: string; subtitle: string }> = {
@@ -37,7 +38,7 @@ export default function AdminModules({ section, organizerName }: { section: Sect
     try {
       const endpoint = section === "content" ? "/api/admin/site-content" : section === "gallery" ? "/api/admin/gallery" : section === "coupons" ? "/api/admin/coupons" : "/api/admin/customers";
       const response = await fetch(endpoint, { cache: "no-store" });
-      const data = await response.json();
+      const data = await response.json() as ApiResponse;
       if (!response.ok) throw new Error(data.error || "No se pudo cargar la información.");
       if (section === "content") setSettings({ ...defaultSettings, ...data.settings });
       if (section === "gallery") setGallery(data.images || []);
@@ -53,7 +54,7 @@ export default function AdminModules({ section, organizerName }: { section: Sect
     event.preventDefault(); setBusy(true); setMessage("");
     try {
       const response = await fetch("/api/admin/site-content", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(settings) });
-      const data = await response.json(); if (!response.ok) throw new Error(data.error || "No se pudo guardar.");
+      const data = await response.json() as ApiResponse; if (!response.ok) throw new Error(data.error || "No se pudo guardar.");
       setMessage("Información guardada. El sitio público la actualizará al recargar.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo guardar."); }
     finally { setBusy(false); }
@@ -61,14 +62,14 @@ export default function AdminModules({ section, organizerName }: { section: Sect
 
   async function uploadImage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = event.currentTarget; const data = new FormData(form); setBusy(true); setMessage("");
-    try { const response = await fetch("/api/admin/gallery", { method: "POST", body: data }); const body = await response.json(); if (!response.ok) throw new Error(body.error || "No se pudo subir la imagen."); form.reset(); setMessage("Imagen añadida al carrusel."); await load(); }
+    try { const response = await fetch("/api/admin/gallery", { method: "POST", body: data }); const body = await response.json() as ApiResponse; if (!response.ok) throw new Error(body.error || "No se pudo subir la imagen."); form.reset(); setMessage("Imagen añadida al carrusel."); await load(); }
     catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo subir la imagen."); }
     finally { setBusy(false); }
   }
 
   async function removeImage(id: string) {
     if (!window.confirm("¿Quitar esta imagen del carrusel?")) return;
-    const response = await fetch(`/api/admin/gallery/${id}`, { method: "DELETE" }); const data = await response.json();
+    const response = await fetch(`/api/admin/gallery/${id}`, { method: "DELETE" }); const data = await response.json() as ApiResponse;
     if (!response.ok) { setMessage(data.error || "No se pudo quitar la imagen."); return; }
     setMessage("Imagen quitada."); await load();
   }
@@ -77,13 +78,13 @@ export default function AdminModules({ section, organizerName }: { section: Sect
     event.preventDefault(); const formNode = event.currentTarget; const form = new FormData(formNode);
     const rawAmount = Number(form.get("amount")); const payload = { code: String(form.get("code") || ""), discountType, amount: discountType === "percent" ? Math.round(rawAmount * 100) : Math.round(rawAmount * 100), startsAt: String(form.get("startsAt") || ""), endsAt: String(form.get("endsAt") || ""), maxUses: String(form.get("maxUses") || "") };
     setBusy(true); setMessage("");
-    try { const response = await fetch("/api/admin/coupons", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || "No se pudo crear el código."); formNode.reset(); setMessage("Código promocional creado."); await load(); }
+    try { const response = await fetch("/api/admin/coupons", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); const data = await response.json() as ApiResponse; if (!response.ok) throw new Error(data.error || "No se pudo crear el código."); formNode.reset(); setMessage("Código promocional creado."); await load(); }
     catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo crear el código."); }
     finally { setBusy(false); }
   }
 
   async function deactivateCoupon(id: string) {
-    const response = await fetch(`/api/admin/coupons/${id}`, { method: "DELETE" }); const data = await response.json();
+    const response = await fetch(`/api/admin/coupons/${id}`, { method: "DELETE" }); const data = await response.json() as ApiResponse;
     if (!response.ok) { setMessage(data.error || "No se pudo desactivar."); return; }
     setMessage("Código desactivado."); await load();
   }
@@ -92,7 +93,7 @@ export default function AdminModules({ section, organizerName }: { section: Sect
     setBusy(true); setMessage("");
     try {
       const response = await fetch(`/api/admin/customers/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
-      const data = await response.json(); if (!response.ok) throw new Error(data.error || "No se pudo actualizar la solicitud.");
+      const data = await response.json() as ApiResponse; if (!response.ok) throw new Error(data.error || "No se pudo actualizar la solicitud.");
       const feedback = data.emailSent ? "Pago confirmado y pase QR enviado por correo." : data.emailError ? `Estado actualizado. Correo pendiente: ${data.emailError}` : "Estado de la solicitud actualizado.";
       await load(); setMessage(feedback);
     } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo actualizar la solicitud."); }
@@ -103,7 +104,7 @@ export default function AdminModules({ section, organizerName }: { section: Sect
     setBusy(true); setMessage("");
     try {
       const response = await fetch(`/api/admin/customers/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "resend_confirmation" }) });
-      const data = await response.json(); if (!response.ok) throw new Error(data.error || "No se pudo enviar el pase.");
+      const data = await response.json() as ApiResponse; if (!response.ok) throw new Error(data.error || "No se pudo enviar el pase.");
       const feedback = data.alreadySent ? "El correo ya constaba como enviado; no se duplicó." : "Pase QR enviado al correo registrado.";
       await load(); setMessage(feedback);
     } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo enviar el pase."); }
