@@ -60,7 +60,7 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
       const response = await fetch("/api/admin/events", { cache: "no-store" });
       const data = await response.json() as ApiResponse;
       if (!response.ok) throw new Error(data.error || "No se pudieron cargar los eventos.");
-      setEvents(data.events);
+      setEvents(data.events ?? []);
       setMessage("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Error al cargar los eventos.");
