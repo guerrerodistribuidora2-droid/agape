@@ -18,8 +18,9 @@ const defaults: Record<string, string> = {
 
 export async function GET() {
   const settings = { ...defaults };
-  if (getDatabase(env)) {
-    const rows = await getDatabase(env).prepare("SELECT key, value FROM site_settings").all<{ key: string; value: string }>();
+  const db = getDatabase(env);
+  if (db) {
+    const rows = await db.prepare("SELECT key, value FROM site_settings").all<{ key: string; value: string }>();
     for (const row of rows.results) if (Object.hasOwn(settings, row.key)) settings[row.key] = row.value;
   }
   return Response.json({ settings }, { headers: { "Cache-Control": "public, max-age=60" } });

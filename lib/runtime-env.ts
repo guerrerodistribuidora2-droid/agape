@@ -41,7 +41,7 @@ function makeR2Bucket(config: { endpoint: string; bucket: string; accessKey: str
     };
     if (metadata?.contentType) requestHeaders["content-type"] = metadata.contentType;
     if (metadata?.cacheControl) requestHeaders["cache-control"] = metadata.cacheControl;
-    const canonicalHeaderValues = { ...requestHeaders, host: url.host };
+    const canonicalHeaderValues: Record<string, string> = { ...requestHeaders, host: url.host };
     const names = Object.keys(canonicalHeaderValues).sort();
     const canonicalHeaders = names.map((name) => `${name}:${canonicalHeaderValues[name].trim()}\n`).join("");
     const signedHeaders = names.join(";");
