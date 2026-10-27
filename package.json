@@ -9,6 +9,7 @@
     "install:ci": "node scripts/install-ci.mjs",
     "dev": "next dev",
     "build": "next build",
+    "build:local": "next build --webpack",
     "start": "next start",
     "dev:cloudflare": "node scripts/run-framework.mjs dev",
     "build:cloudflare": "node scripts/run-framework.mjs build",
