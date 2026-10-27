@@ -108,9 +108,10 @@ function eventImageUrl(key: unknown) {
 
 export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) return Response.json({ error: "No autorizado." }, { status: 403 });
-  if (!getDatabase(env)) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
+  const db = getDatabase(env);
+  if (!db) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
 
-  const { results } = await getDatabase(env).prepare(
+  const { results } = await db.prepare(
     `SELECT id, title, venue, description, event_date, arrival_time, start_time,
             min_age, max_age, women_capacity, men_capacity,
             women_price_cents, men_price_cents, status, image_key, created_at, updated_at,
@@ -139,7 +140,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return Response.json({ error: "No autorizado." }, { status: 403 });
   if (!sameOrigin(request)) return Response.json({ error: "Origen no permitido." }, { status: 403 });
-  if (!getDatabase(env)) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
+  const db = getDatabase(env);
+  if (!db) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
 
   const { body, image } = await readSubmission(request);
   if (body?.action === "seed_demo") {
@@ -150,14 +152,14 @@ export async function POST(request: Request) {
       { key: "sobremesa", title: "DEMO · Conversaciones de sábado", days: 21, minAge: 40, maxAge: 55, capacity: 12, price: 2800 },
       { key: "noches", title: "DEMO · Noches por edades", days: 28, minAge: 25, maxAge: 37, capacity: 18, price: 2500 },
     ];
-    const existing = await getDatabase(env).prepare("SELECT title FROM events WHERE title LIKE 'DEMO · %'").all<{ title: string }>();
+    const existing = await db.prepare("SELECT title FROM events WHERE title LIKE 'DEMO · %'").all<{ title: string }>();
     const existingTitles = new Set(existing.results.map((row) => row.title));
     let created = 0;
     for (const sample of samples) {
       if (existingTitles.has(sample.title)) continue;
       const date = new Date(base);
       date.setUTCDate(date.getUTCDate() + sample.days);
-      await getDatabase(env).prepare(
+      await db.prepare(
         `INSERT INTO events (id, title, venue, description, event_date, arrival_time,
           start_time, min_age, max_age, women_capacity, men_capacity,
           women_price_cents, men_price_cents, status, image_key)
@@ -181,7 +183,7 @@ export async function POST(request: Request) {
     if (stored === "unavailable") return Response.json({ error: "El almacenamiento de imágenes no está disponible." }, { status: 503 });
     payload.imageKey = id;
   }
-  await getDatabase(env).prepare(
+  await db.prepare(
     `INSERT INTO events (id, title, venue, description, event_date, arrival_time,
       start_time, min_age, max_age, women_capacity, men_capacity,
       women_price_cents, men_price_cents, status, image_key)
@@ -193,26 +195,28 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   if (!(await isAdminRequest(request))) return Response.json({ error: "No autorizado." }, { status: 403 });
   if (!sameOrigin(request)) return Response.json({ error: "Origen no permitido." }, { status: 403 });
-  if (!getDatabase(env)) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
+  const db = getDatabase(env);
+  if (!db) return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
 
   const { body, image } = await readSubmission(request);
   const id = typeof body?.id === "string" && /^[0-9a-f-]{36}$/i.test(body.id) ? body.id : "";
   const payload = id ? parsePayload(body, id) : null;
   if (!id || !payload) return Response.json({ error: "Revisa los campos del evento." }, { status: 400 });
-  const previous = await getDatabase(env).prepare("SELECT image_key FROM events WHERE id = ?").bind(id).first<{ image_key: string | null }>();
+  const previous = await db.prepare("SELECT image_key FROM events WHERE id = ?").bind(id).first<{ image_key: string | null }>();
   if (image) {
     const stored = await storeImage(image, id);
     if (stored === "invalid") return Response.json({ error: "La imagen debe ser JPG, PNG o WebP y pesar máximo 5 MB." }, { status: 400 });
     if (stored === "unavailable") return Response.json({ error: "El almacenamiento de imágenes no está disponible." }, { status: 503 });
     payload.imageKey = id;
   }
-  const result = await getDatabase(env).prepare(
+  const result = await db.prepare(
     `UPDATE events SET title = ?, venue = ?, description = ?, event_date = ?,
       arrival_time = ?, start_time = ?, min_age = ?, max_age = ?, women_capacity = ?,
       men_capacity = ?, women_price_cents = ?, men_price_cents = ?, status = ?,
       image_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
   ).bind(...values(payload), id).run();
   if (!result.meta.changes) return Response.json({ error: "No se encontró el evento." }, { status: 404 });
-  if (previous?.image_key && payload.imageKey === null && env.BUCKET) await env.BUCKET.delete(previous.image_key);
+  const bucket = env.BUCKET;
+  if (previous?.image_key && payload.imageKey === null && bucket) await bucket.delete(previous.image_key);
   return Response.json({ ok: true });
 }

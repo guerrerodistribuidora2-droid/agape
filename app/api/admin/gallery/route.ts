@@ -9,15 +9,18 @@ function sameOrigin(request: Request) { const origin = request.headers.get("orig
 
 export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) return Response.json({ error: "No autorizado." }, { status: 403 });
-  if (!getDatabase(env)) return Response.json({ error: "La base de datos no está disponible." }, { status: 503 });
-  const rows = await getDatabase(env).prepare("SELECT id, caption, alt_text, position, active FROM gallery_images ORDER BY position, created_at DESC").all<{ id: string; caption: string; alt_text: string; position: number; active: number }>();
+  const db = getDatabase(env);
+  if (!db) return Response.json({ error: "La base de datos no está disponible." }, { status: 503 });
+  const rows = await db.prepare("SELECT id, caption, alt_text, position, active FROM gallery_images ORDER BY position, created_at DESC").all<{ id: string; caption: string; alt_text: string; position: number; active: number }>();
   return Response.json({ images: rows.results.map((row) => ({ id: row.id, caption: row.caption, altText: row.alt_text, position: row.position, active: Boolean(row.active), imageUrl: `/api/public/gallery/${row.id}` })) }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return Response.json({ error: "No autorizado." }, { status: 403 });
   if (!sameOrigin(request)) return Response.json({ error: "Origen no permitido." }, { status: 403 });
-  if (!getDatabase(env) || !env.BUCKET) return Response.json({ error: "El almacenamiento de imágenes no está disponible." }, { status: 503 });
+  const db = getDatabase(env);
+  const bucket = env.BUCKET;
+  if (!db || !bucket) return Response.json({ error: "El almacenamiento de imágenes no está disponible." }, { status: 503 });
   const form = await request.formData();
   const image = form.get("image");
   const caption = String(form.get("caption") || "").trim().slice(0, 100);
@@ -26,11 +29,11 @@ export async function POST(request: Request) {
   const head = new Uint8Array(await image.slice(0, 12).arrayBuffer());
   const valid = image.type === "image/png" ? head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47 : image.type === "image/jpeg" ? head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff : String.fromCharCode(...head.slice(0, 4)) === "RIFF" && String.fromCharCode(...head.slice(8, 12)) === "WEBP";
   if (!valid) return Response.json({ error: "El archivo no parece ser una imagen válida." }, { status: 400 });
-  const activeCount = await getDatabase(env).prepare("SELECT COUNT(*) AS total FROM gallery_images WHERE active = 1").first<{ total: number }>();
+  const activeCount = await db.prepare("SELECT COUNT(*) AS total FROM gallery_images WHERE active = 1").first<{ total: number }>();
   if ((activeCount?.total ?? 0) >= 3) return Response.json({ error: "El carrusel tiene tres espacios. Quita una imagen antes de agregar otra." }, { status: 409 });
   const id = crypto.randomUUID();
-  await env.BUCKET.put(`gallery/${id}`, image.stream(), { httpMetadata: { contentType: image.type, cacheControl: "public, max-age=3600" } });
-  const next = await getDatabase(env).prepare("SELECT COALESCE(MAX(position), -1) + 1 AS position FROM gallery_images").first<{ position: number }>();
-  await getDatabase(env).prepare("INSERT INTO gallery_images (id, caption, alt_text, storage_key, position, active) VALUES (?, ?, ?, ?, ?, 1)").bind(id, caption, altText, `gallery/${id}`, next?.position ?? 0).run();
+  await bucket.put(`gallery/${id}`, image.stream(), { httpMetadata: { contentType: image.type, cacheControl: "public, max-age=3600" } });
+  const next = await db.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS position FROM gallery_images").first<{ position: number }>();
+  await db.prepare("INSERT INTO gallery_images (id, caption, alt_text, storage_key, position, active) VALUES (?, ?, ?, ?, ?, 1)").bind(id, caption, altText, `gallery/${id}`, next?.position ?? 0).run();
   return Response.json({ id }, { status: 201 });
 }

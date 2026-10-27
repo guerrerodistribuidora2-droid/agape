@@ -25,8 +25,9 @@ function sameOrigin(request: Request) {
 
 export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) return Response.json({ error: "No autorizado." }, { status: 403 });
-  if (!getDatabase(env)) return Response.json({ error: "La base de datos no está disponible." }, { status: 503 });
-  const rows = await getDatabase(env).prepare("SELECT key, value FROM site_settings").all<{ key: string; value: string }>();
+  const db = getDatabase(env);
+  if (!db) return Response.json({ error: "La base de datos no está disponible." }, { status: 503 });
+  const rows = await db.prepare("SELECT key, value FROM site_settings").all<{ key: string; value: string }>();
   const settings = { ...defaults };
   for (const row of rows.results) if (allowed.has(row.key)) settings[row.key] = row.value;
   return Response.json({ settings }, { headers: { "Cache-Control": "no-store" } });
@@ -35,14 +36,15 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   if (!(await isAdminRequest(request))) return Response.json({ error: "No autorizado." }, { status: 403 });
   if (!sameOrigin(request)) return Response.json({ error: "Origen no permitido." }, { status: 403 });
-  if (!getDatabase(env)) return Response.json({ error: "La base de datos no está disponible." }, { status: 503 });
+  const db = getDatabase(env);
+  if (!db) return Response.json({ error: "La base de datos no está disponible." }, { status: 503 });
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
   if (!body || Object.keys(body).some((key) => !allowed.has(key))) return Response.json({ error: "Contenido no válido." }, { status: 400 });
   const statements = Object.entries(body).map(([key, raw]) => {
     if (typeof raw !== "string" || raw.length > (key.startsWith("bank_") ? 5000 : 250)) throw new Error("El contenido supera el límite permitido.");
-    return getDatabase(env)!.prepare("INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP").bind(key, raw.trim());
+    return db.prepare("INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP").bind(key, raw.trim());
   });
-  try { if (statements.length) await getDatabase(env).batch(statements); }
+  try { if (statements.length) await db.batch(statements); }
   catch (error) { return Response.json({ error: error instanceof Error ? error.message : "No se pudo guardar." }, { status: 400 }); }
   return Response.json({ ok: true });
 }

@@ -5,14 +5,15 @@ import { occupancyPercent } from "../../../../lib/turso";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!getDatabase(env)) {
+  const db = getDatabase(env);
+  if (!db) {
     return Response.json({ error: "La base de eventos no está disponible." }, { status: 503 });
   }
 
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Guayaquil",
   }).format(new Date());
-  const { results } = await getDatabase(env).prepare(
+  const { results } = await db.prepare(
     `SELECT id, title, venue, description, event_date, arrival_time, start_time,
             min_age, max_age, women_capacity, men_capacity,
             women_price_cents, men_price_cents, image_key,
