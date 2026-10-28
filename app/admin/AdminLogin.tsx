@@ -42,7 +42,7 @@ export default function AdminLogin() {
           {error && <p className="admin-login-error" role="alert">{error}</p>}
           <button className="admin-primary-button" type="submit" disabled={busy}>{busy ? "Verificando…" : "Iniciar sesión →"}</button>
         </form>
-        <a className="admin-secondary-button" href="/agape">Volver al sitio</a>
+        <a className="admin-secondary-button" href="/">Volver al sitio</a>
       </section>
     </main>
   );

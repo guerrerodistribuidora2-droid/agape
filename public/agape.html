@@ -263,7 +263,7 @@
     const selectedLabel = selectedEvent ? eventSummary() : 'Sin elegir';
     const configuredPrice = selectedEvent ? Number(state.gender === 'Hombre' ? selectedEvent.menPriceCents : selectedEvent.womenPriceCents || selectedEvent.menPriceCents || 0) : 0;
     const totalCents = Math.max(0, configuredPrice - Number(state.couponDiscountCents || 0));
-    const platformCents = totalCents ? 150 : 0;
+    const platformCents = Math.min(totalCents, 150);
     const beforeTaxCents = Math.max(0, totalCents - platformCents);
     const subtotalCents = Math.round(beforeTaxCents / 1.15);
     const taxCents = beforeTaxCents - subtotalCents;

@@ -113,11 +113,11 @@ export default function AdminModules({ section, organizerName }: { section: Sect
 
   const info = sectionTitle[section];
   return <main className="admin-app">
-    <aside className="admin-sidebar"><a className="admin-logo" href="/agape" aria-label="Volver a Ágape"><img src="/agape-logo-transparent.png" alt="Ágape · Conexión humana real" /></a><div className="sidebar-caption">GESTIÓN</div>
+    <aside className="admin-sidebar"><a className="admin-logo" href="/" aria-label="Volver a Ágape"><img src="/agape-logo-transparent.png" alt="Ágape · Conexión humana real" /></a><div className="sidebar-caption">GESTIÓN</div>
       <a className="sidebar-link" href="/admin?seccion=eventos"><span>◫</span> Eventos</a><a className={`sidebar-link ${section === "gallery" ? "active" : ""}`} href="/admin?seccion=galeria"><span>▧</span> Carrusel</a><a className={`sidebar-link ${section === "coupons" ? "active" : ""}`} href="/admin?seccion=cupones"><span>％</span> Promociones</a><a className={`sidebar-link ${section === "content" ? "active" : ""}`} href="/admin?seccion=contenido"><span>⌘</span> Contenido y contacto</a><a className={`sidebar-link ${section === "customers" ? "active" : ""}`} href="/admin?seccion=clientes"><span>◉</span> Clientes</a>
       <div className="sidebar-bottom"><div className="organizer-avatar">{organizerName.slice(0, 1).toUpperCase()}</div><div><b>{organizerName}</b><small>Administrador</small></div></div>
     </aside>
-    <section className="admin-main"><header className="admin-topbar"><a href="/agape" className="back-to-site">← Ver sitio público</a><div className="admin-top-actions"><span className="secure-label"><i /> PANEL PRIVADO</span><button className="admin-logout" onClick={() => void logout()}>Cerrar sesión</button></div></header>
+    <section className="admin-main"><header className="admin-topbar"><a href="/" className="back-to-site">← Ver sitio público</a><div className="admin-top-actions"><span className="secure-label"><i /> PANEL PRIVADO</span><button className="admin-logout" onClick={() => void logout()}>Cerrar sesión</button></div></header>
       <div className="admin-content"><div className="admin-heading-row"><div><p className="admin-eyebrow">CENTRO DE CONTROL · ÁGAPE</p><h1>{info.title}</h1><p className="admin-subtitle">{info.subtitle}</p></div><button className="refresh-button" onClick={() => void load()}>↻ Actualizar</button></div>
         {message && <div className="admin-message" role="status">{message}</div>}
         {busy && <p className="admin-module-loading">Sincronizando con Ágape…</p>}
