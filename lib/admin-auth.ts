@@ -1,4 +1,5 @@
 import { env } from "@/lib/runtime-env";
+import { getDatabase } from "@/lib/turso";
 import type { ChatGPTUser } from "../app/chatgpt-auth";
 
 const SESSION_COOKIE = "agape_admin_session";
@@ -35,8 +36,9 @@ export function organizerLabel(user: ChatGPTUser): string {
 
 export async function verifyAdminCredentials(username: string, password: string) {
   const expectedUser = env.AGAPE_ADMIN_USERNAME ?? "";
-  const saltText = env.AGAPE_ADMIN_PASSWORD_SALT ?? "";
-  const expectedHash = env.AGAPE_ADMIN_PASSWORD_HASH ?? "";
+  const stored = await getStoredAdminCredential();
+  const saltText = stored?.salt ?? env.AGAPE_ADMIN_PASSWORD_SALT ?? "";
+  const expectedHash = stored?.password_hash ?? env.AGAPE_ADMIN_PASSWORD_HASH ?? "";
   if (!expectedUser || !saltText || !expectedHash || username.length > 100 || password.length > 1024) return false;
   const userMatch = constantTimeEqual(encoder.encode(username.trim()), encoder.encode(expectedUser));
   try {
@@ -49,6 +51,20 @@ export async function verifyAdminCredentials(username: string, password: string)
   }
 }
 
+export async function getStoredAdminCredential() {
+  const db = getDatabase(env);
+  if (!db || !env.AGAPE_ADMIN_USERNAME) return null;
+  return await db.prepare("SELECT salt, password_hash, version FROM admin_credentials WHERE username = ?")
+    .bind(env.AGAPE_ADMIN_USERNAME).first<{ salt: string; password_hash: string; version: number }>();
+}
+
+export async function hashAdminPassword(password: string) {
+  const salt = crypto.getRandomValues(new Uint8Array(24));
+  const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 100_000, hash: "SHA-256" }, key, 256);
+  return { salt: encode(salt), hash: encode(new Uint8Array(bits)) };
+}
+
 async function signingKey() {
   const secret = env.AGAPE_ADMIN_SESSION_SECRET ?? "";
   if (secret.length < 32) return null;
@@ -58,7 +74,8 @@ async function signingKey() {
 export async function createAdminSessionCookie(username: string) {
   const key = await signingKey();
   if (!key) throw new Error("Falta configurar la sesión segura del panel.");
-  const payload = encode(encoder.encode(JSON.stringify({ username, exp: Math.floor(Date.now() / 1000) + SESSION_SECONDS })));
+  const credential = await getStoredAdminCredential();
+  const payload = encode(encoder.encode(JSON.stringify({ username, version: Number(credential?.version ?? 0), exp: Math.floor(Date.now() / 1000) + SESSION_SECONDS })));
   const signature = encode(new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(payload))));
   return `${SESSION_COOKIE}=${payload}.${signature}; Path=/; Max-Age=${SESSION_SECONDS}; HttpOnly; Secure; SameSite=Strict`;
 }
@@ -72,8 +89,10 @@ export async function adminSessionFromCookie(cookieHeader: string | null) {
   if (!key) return null;
   try {
     if (!await crypto.subtle.verify("HMAC", key, decode(signature), encoder.encode(payload))) return null;
-    const data = JSON.parse(new TextDecoder().decode(decode(payload))) as { username?: unknown; exp?: unknown };
+    const data = JSON.parse(new TextDecoder().decode(decode(payload))) as { username?: unknown; exp?: unknown; version?: unknown };
     if (data.username !== env.AGAPE_ADMIN_USERNAME || typeof data.exp !== "number" || data.exp <= Date.now() / 1000) return null;
+    const credential = await getStoredAdminCredential();
+    if ((data.version ?? 0) !== Number(credential?.version ?? 0)) return null;
     return { username: String(data.username) };
   } catch { return null; }
 }

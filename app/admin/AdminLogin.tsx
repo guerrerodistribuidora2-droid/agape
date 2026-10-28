@@ -42,6 +42,7 @@ export default function AdminLogin() {
           {error && <p className="admin-login-error" role="alert">{error}</p>}
           <button className="admin-primary-button" type="submit" disabled={busy}>{busy ? "Verificando…" : "Iniciar sesión →"}</button>
         </form>
+        <a className="admin-forgot-link" href="/admin/recuperar">¿Olvidaste tu contraseña?</a>
         <a className="admin-secondary-button" href="/">Volver al sitio</a>
       </section>
     </main>

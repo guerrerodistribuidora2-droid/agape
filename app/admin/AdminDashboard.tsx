@@ -192,7 +192,7 @@ export default function AdminDashboard({ organizerName }: { organizerName: strin
       </aside>
 
       <section className="admin-main" id="eventos">
-        <header className="admin-topbar"><a href="/" className="back-to-site">← Ver sitio público</a><div className="admin-top-actions"><span className="secure-label"><i /> PANEL PRIVADO</span><button className="admin-logout" onClick={async () => { await fetch("/api/admin/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "logout" }) }); window.location.replace("/admin"); }}>Cerrar sesión</button></div></header>
+        <header className="admin-topbar"><a href="/" className="back-to-site">← Ver sitio público</a><div className="admin-top-actions"><span className="secure-label"><i /> PANEL PRIVADO</span><a className="admin-logout" href="/admin/cambiar-contrasena">Cambiar contraseña</a><button className="admin-logout" onClick={async () => { await fetch("/api/admin/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "logout" }) }); window.location.replace("/admin"); }}>Cerrar sesión</button></div></header>
         <div className="admin-content">
           <div className="admin-heading-row"><div><p className="admin-eyebrow">CENTRO DE CONTROL · ÁGAPE</p><h1>Eventos con intención.</h1><p className="admin-subtitle">Organiza fechas, cupos y precios desde un solo lugar.</p></div><button className="admin-create-button" onClick={createEvent}><span>＋</span> Crear evento</button></div>
 
