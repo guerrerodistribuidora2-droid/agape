@@ -38,6 +38,13 @@
     </style>
   </head>
   <body>
+    <style>
+      /* Event flyers should remain legible, including their own text and dates. */
+      .event-art.has-photo { height: auto; aspect-ratio: 4 / 5; background: #10090b; filter: none; }
+      .event-art.has-photo .event-cover-photo { object-fit: contain; }
+      .event-art.has-photo::after, .event-art.has-photo .event-number, .event-art.has-photo .event-orbit-mini, .event-art.has-photo .event-symbol, .event-art.has-photo .event-art-caption { display: none; }
+      @media (max-width: 650px) { .event-art.has-photo { height: 100%; min-height: 220px; aspect-ratio: auto; } }
+    </style>
     <header class="site-header">
       <a class="brand" href="#inicio" aria-label="Ágape, inicio"><img class="brand-image" src="/agape-logo-transparent.png" alt="Ágape · Conexión humana real" /></a>
       <button class="menu-toggle" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span></button>
