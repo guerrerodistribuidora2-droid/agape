@@ -44,6 +44,12 @@
       .event-art.has-photo .event-cover-photo { object-fit: contain; }
       .event-art.has-photo::after, .event-art.has-photo .event-number, .event-art.has-photo .event-orbit-mini, .event-art.has-photo .event-symbol, .event-art.has-photo .event-art-caption { display: none; }
       @media (max-width: 650px) { .event-art.has-photo { height: 100%; min-height: 220px; aspect-ratio: auto; } }
+      .event-card { cursor: pointer; }
+      .ticker .ticker-track { width: max-content; min-width: 0; gap: 0; justify-content: initial; animation: ticker-scroll 24s linear infinite; }
+      .ticker-group { display: flex; align-items: center; justify-content: space-around; flex: none; min-width: 100vw; gap: 36px; padding-right: 36px; white-space: nowrap; }
+      @keyframes ticker-scroll { to { transform: translateX(-50%); } }
+      @media (max-width: 650px) { .ticker-group { gap: 16px; padding-right: 16px; } }
+      @media (prefers-reduced-motion: reduce) { .ticker-track { animation: none !important; } }
     </style>
     <header class="site-header">
       <a class="brand" href="#inicio" aria-label="Ágape, inicio"><img class="brand-image" src="/agape-logo-transparent.png" alt="Ágape · Conexión humana real" /></a>
@@ -76,7 +82,7 @@
         <div class="hero-bottom"><span>BAJA PARA DESCUBRIR</span><span class="down-mark">↓</span><span class="hero-bottom-right">CONVERSACIONES QUE VAN A ALGÚN LADO</span></div>
       </section>
 
-      <section class="ticker" aria-label="Una experiencia para estar presente"><div class="ticker-track"><span>MENOS SCROLL</span><b>✳</b><span>MÁS PRESENCIA</span><b>✳</b><span>MENOS SCROLL</span><b>✳</b><span>MÁS PRESENCIA</span><b>✳</b><span>MENOS SCROLL</span><b>✳</b><span>MÁS PRESENCIA</span><b>✳</b></div></section>
+      <section class="ticker" aria-label="Menos scroll, más presencia"><div class="ticker-track"><div class="ticker-group"><span>MENOS SCROLL</span><b>✳</b><span>MÁS PRESENCIA</span><b>✳</b><span>MENOS SCROLL</span><b>✳</b><span>MÁS PRESENCIA</span><b>✳</b><span>MENOS SCROLL</span><b>✳</b><span>MÁS PRESENCIA</span><b>✳</b></div><div class="ticker-group" aria-hidden="true"><span>MENOS SCROLL</span><b>✳</b><span>MÁS PRESENCIA</span><b>✳</b><span>MENOS SCROLL</span><b>✳</b><span>MÁS PRESENCIA</span><b>✳</b><span>MENOS SCROLL</span><b>✳</b><span>MÁS PRESENCIA</span><b>✳</b></div></div></section>
 
       <section class="section nights-section" id="noches">
         <div class="section-head"><div><div class="eyebrow dark"><span class="eyebrow-line"></span> LA AGENDA</div><h2>Una noche para<br /><em>conocerse distinto.</em></h2></div><p>Cada edición tiene su propia energía, grupo de edad y aforo cuidado. Elige una noche que se sienta como tú.</p></div>
@@ -315,8 +321,9 @@
   }
 
   function openBooking(date = '') {
-    state.step = 1;
-    state.date = date;
+    const selectedDate = publishedEvents.some((event) => event.id === date) ? date : '';
+    state.step = selectedDate ? 2 : 1;
+    state.date = selectedDate;
     state.name = state.age = state.gender = state.phone = state.email = state.social = state.cedula = state.cocktailType = state.cocktail = state.intention = state.payment = state.orderRef = state.uploadToken = state.proofName = state.couponCode = '';
     state.proofFile = null;
     state.couponDiscountCents = 0;
@@ -347,7 +354,7 @@
         const occupied = Number(event.confirmedSeats || 0);
         const occupancy = Number(event.occupancyPercent || 0);
         const price = Math.min(Number(event.womenPriceCents || 0), Number(event.menPriceCents || 0));
-        return `<article class="event-card"><div class="event-art ${palette[index % palette.length]}${event.imageUrl ? ' has-photo' : ''}">${event.imageUrl ? `<img class="event-cover-photo" src="${safe(event.imageUrl)}" alt="Foto de ${safe(event.title)}" loading="lazy" />` : ''}<span class="event-number">${String(index + 1).padStart(2, '0')} / ${safe(date.toLocaleUpperCase('es-EC'))}</span><span class="event-orbit-mini"></span><span class="event-symbol">${symbols[index % symbols.length]}</span><span class="event-art-caption">UNA NOCHE<br />PARA CONECTAR</span></div><div class="event-info"><div class="event-meta"><span>PRÓXIMA EXPERIENCIA</span><span class="capacity"><i></i> ${places} LUGARES</span></div><h3>${safe(event.title)}</h3><p>${safe(event.description || 'Una experiencia para conversar y encontrarse con nuevas perspectivas.')}</p><div class="event-tags"><span>GRUPO ${event.minAge}—${event.maxAge}</span><span>${safe(event.venue)}</span><span>DESDE $${(price / 100).toFixed(2)}</span></div><div class="event-public-occupancy"><div><span>CUPOS CONFIRMADOS</span><b>${occupancy}%</b></div><div class="public-capacity-track"><i style="width:${occupancy}%"></i></div><small>${occupied} de ${places} · pagos confirmados</small></div><button class="event-cta" data-book data-date="${safe(event.id)}">Ver cómo se reserva <span>↗</span></button></div></article>`;
+        return `<article class="event-card" data-event-id="${safe(event.id)}"><div class="event-art ${palette[index % palette.length]}${event.imageUrl ? ' has-photo' : ''}">${event.imageUrl ? `<img class="event-cover-photo" src="${safe(event.imageUrl)}" alt="Foto de ${safe(event.title)}" loading="lazy" />` : ''}<span class="event-number">${String(index + 1).padStart(2, '0')} / ${safe(date.toLocaleUpperCase('es-EC'))}</span><span class="event-orbit-mini"></span><span class="event-symbol">${symbols[index % symbols.length]}</span><span class="event-art-caption">UNA NOCHE<br />PARA CONECTAR</span></div><div class="event-info"><div class="event-meta"><span>PRÓXIMA EXPERIENCIA</span><span class="capacity"><i></i> ${places} LUGARES</span></div><h3>${safe(event.title)}</h3><p>${safe(event.description || 'Una experiencia para conversar y encontrarse con nuevas perspectivas.')}</p><div class="event-tags"><span>GRUPO ${event.minAge}—${event.maxAge}</span><span>${safe(event.venue)}</span><span>DESDE $${(price / 100).toFixed(2)}</span></div><div class="event-public-occupancy"><div><span>CUPOS CONFIRMADOS</span><b>${occupancy}%</b></div><div class="public-capacity-track"><i style="width:${occupancy}%"></i></div><small>${occupied} de ${places} · pagos confirmados</small></div><button class="event-cta" data-book data-date="${safe(event.id)}">Reservar mi lugar <span>↗</span></button></div></article>`;
       }).join('') : '<div class="events-empty"><span>✳</span><b>Nuevas fechas en preparación.</b><p>El equipo Ágape anunciará pronto las próximas experiencias.</p></div>';
     } catch {
       if (capacitySummary) capacitySummary.hidden = true;
@@ -426,6 +433,8 @@
     if (event.target.closest('[data-info-close]')) { event.preventDefault(); infoPage.classList.remove('open'); infoPage.setAttribute('aria-hidden', 'true'); if (location.hash === '#noches') document.querySelector('#noches')?.scrollIntoView({ behavior: 'smooth' }); return; }
     const book = event.target.closest('[data-book]');
     if (book) { openBooking(book.dataset.date || ''); return; }
+    const eventCard = event.target.closest('.event-card[data-event-id]');
+    if (eventCard && !event.target.closest('a, button, input, select, textarea')) { openBooking(eventCard.dataset.eventId); return; }
     if (event.target.closest('.dialog-close')) { dialog.close(); return; }
     if (event.target.closest('[data-choice-date]')) {
       state.date = event.target.closest('[data-choice-date]').dataset.choiceDate;
