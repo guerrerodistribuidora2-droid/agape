@@ -8,6 +8,7 @@ type RuntimeVariables = Partial<Cloudflare.Env> & {
   R2_BUCKET_NAME?: string;
   R2_ENDPOINT?: string;
   AGAPE_ADMIN_RECOVERY_EMAIL?: string;
+  AGAPE_ADMIN_EMAIL_FROM?: string;
 };
 
 const readEnv = (name: keyof RuntimeVariables) => process.env[name] || undefined;
@@ -106,6 +107,7 @@ export const env: RuntimeVariables = {
   AGAPE_ADMIN_PASSWORD_HASH: readEnv("AGAPE_ADMIN_PASSWORD_HASH"),
   AGAPE_ADMIN_SESSION_SECRET: readEnv("AGAPE_ADMIN_SESSION_SECRET"),
   AGAPE_ADMIN_RECOVERY_EMAIL: readEnv("AGAPE_ADMIN_RECOVERY_EMAIL"),
+  AGAPE_ADMIN_EMAIL_FROM: readEnv("AGAPE_ADMIN_EMAIL_FROM"),
   PAYPHONE_TOKEN: readEnv("PAYPHONE_TOKEN"),
   PAYPHONE_STORE_ID: readEnv("PAYPHONE_STORE_ID"),
   RESEND_API_KEY: readEnv("RESEND_API_KEY"),

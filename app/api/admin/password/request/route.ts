@@ -10,7 +10,7 @@ const error = (text: string, status: number) => Response.json({ error: text }, {
 export async function POST(request: Request) {
   if (request.headers.get("origin") !== new URL(request.url).origin) return error("Origen no permitido.", 403);
   const db = getDatabase(env);
-  if (!db || !env.RESEND_API_KEY || !env.AGAPE_EMAIL_FROM || !env.AGAPE_ADMIN_RECOVERY_EMAIL || !env.SITE_BASE_URL || !env.AGAPE_ADMIN_USERNAME) {
+  if (!db || !env.RESEND_API_KEY || !env.AGAPE_ADMIN_EMAIL_FROM || !env.AGAPE_ADMIN_RECOVERY_EMAIL || !env.SITE_BASE_URL || !env.AGAPE_ADMIN_USERNAME) {
     return error("La recuperación por correo todavía no está configurada. Contacta al propietario.", 503);
   }
   let base: URL;
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   try {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST", headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: env.AGAPE_EMAIL_FROM, to: [env.AGAPE_ADMIN_RECOVERY_EMAIL], subject: "Ágape · Recuperar acceso al administrador", html: `<p>Se solicitó cambiar la contraseña del panel Ágape.</p><p><a href="${link.href}">Elegir una nueva contraseña</a></p><p>Este enlace vence en 20 minutos y solo se puede usar una vez. Si no solicitaste el cambio, ignora este mensaje.</p>` }),
+      body: JSON.stringify({ from: env.AGAPE_ADMIN_EMAIL_FROM, to: [env.AGAPE_ADMIN_RECOVERY_EMAIL], subject: "Ágape · Recuperar acceso al administrador", html: `<p>Se solicitó cambiar la contraseña del panel Ágape.</p><p><a href="${link.href}">Elegir una nueva contraseña</a></p><p>Este enlace vence en 20 minutos y solo se puede usar una vez. Si no solicitaste el cambio, ignora este mensaje.</p>` }),
     });
     if (!response.ok) throw new Error("mail unavailable");
   } catch {
