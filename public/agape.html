@@ -50,6 +50,11 @@
       @keyframes ticker-scroll { to { transform: translateX(-50%); } }
       @media (max-width: 650px) { .ticker-group { gap: 16px; padding-right: 16px; } }
       @media (prefers-reduced-motion: reduce) { .ticker-track { animation: none !important; } }
+      .booking-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #10090b; }
+      .booking-visual.has-event-poster > :not(.booking-poster) { display: none; }
+      @media (max-width: 650px) {
+        .booking-visual.has-event-poster { display: block; height: 280px; min-height: 0; padding: 0; }
+      }
     </style>
     <header class="site-header">
       <a class="brand" href="#inicio" aria-label="Ágape, inicio"><img class="brand-image" src="/agape-logo-transparent.png" alt="Ágape · Conexión humana real" /></a>
@@ -118,7 +123,7 @@
     <a class="whatsapp-float" href="https://wa.me/593994239868?text=Hola%20%C3%81gape%2C%20tengo%20una%20consulta" target="_blank" rel="noopener noreferrer" aria-label="Escribir a Ágape por WhatsApp"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16.02 3C8.86 3 3.03 8.82 3.03 15.98c0 2.29.6 4.52 1.74 6.5L3 29l6.68-1.75a12.94 12.94 0 0 0 6.33 1.63h.01C23.17 28.88 29 23.06 29 15.9c0-3.47-1.35-6.73-3.81-9.18A12.9 12.9 0 0 0 16.02 3Zm0 23.68h-.01c-1.94 0-3.84-.52-5.5-1.5l-.4-.23-3.96 1.04 1.06-3.86-.26-.4a10.7 10.7 0 0 1-1.65-5.75c0-5.93 4.83-10.75 10.77-10.75 2.87 0 5.57 1.12 7.6 3.15a10.68 10.68 0 0 1 3.15 7.6c0 5.93-4.83 10.75-10.8 10.75Zm5.9-8.05c-.32-.16-1.9-.94-2.2-1.05-.3-.11-.51-.16-.72.16-.22.32-.83 1.05-1.01 1.27-.19.22-.37.24-.69.08-.32-.16-1.36-.5-2.59-1.6-.96-.85-1.61-1.9-1.8-2.22-.18-.32-.02-.5.14-.65.14-.14.32-.37.48-.56.16-.18.21-.32.32-.53.1-.21.05-.4-.03-.56-.08-.16-.72-1.74-.98-2.38-.25-.62-.51-.54-.7-.55h-.6c-.2 0-.55.08-.84.4-.3.32-1.1 1.08-1.1 2.64 0 1.55 1.12 3.05 1.28 3.26.16.21 2.2 3.36 5.32 4.71.74.32 1.32.51 1.78.65.75.24 1.43.2 1.97.12.6-.09 1.9-.78 2.17-1.53.27-.76.27-1.4.19-1.53-.08-.14-.3-.22-.62-.38Z"/></svg><span>¿Tienes una pregunta?</span></a>
     <dialog class="booking-dialog" aria-labelledby="booking-title">
       <div class="booking-shell"><div class="booking-top"><a class="brand dialog-brand" href="#inicio"><img class="brand-image" src="/agape-logo-transparent.png" alt="Ágape · Conexión humana real" /></a><button class="dialog-close" aria-label="Cerrar reserva">×</button></div>
-        <div class="booking-content"><div class="booking-visual"><div class="booking-visual-ring"></div><span class="booking-visual-star">✳</span><span class="booking-label">UNA NOCHE PARA CONECTAR</span><div class="booking-visual-quote">Lo mejor<br />empieza con<br /><em>hola.</em></div><div class="booking-visual-foot">QUITO · ECUADOR <span>✳</span> ÁGAPE</div></div>
+        <div class="booking-content"><div class="booking-visual"><img class="booking-poster" alt="" hidden /><div class="booking-visual-ring"></div><span class="booking-visual-star">✳</span><span class="booking-label">UNA NOCHE PARA CONECTAR</span><div class="booking-visual-quote">Lo mejor<br />empieza con<br /><em>hola.</em></div><div class="booking-visual-foot">QUITO · ECUADOR <span>✳</span> ÁGAPE</div></div>
           <div class="booking-form-wrap"><div class="booking-progress"><span id="step-label">PASO 1 DE 5</span><div class="progress-track"><i id="progress-fill"></i></div></div><div id="booking-form" class="booking-form"></div></div>
         </div><div class="booking-bottom"><span>✳</span> TUS DATOS SE GUARDAN EN ÁGAPE PARA GESTIONAR TU SOLICITUD <span class="demo-pill">PENDIENTE DE PAGO</span></div>
       </div>
@@ -312,6 +317,23 @@
   }
 
   function render() {
+    const selectedEvent = publishedEvents.find((event) => event.id === state.date);
+    // The sample flyer is only a temporary preview for the explicitly labeled test event.
+    const posterUrl = selectedEvent?.imageUrl || (selectedEvent?.id === '91f52ef7-7774-4e59-9246-1fa588dbed22' ? '/afiche-cena-prueba.jpg' : '');
+    const poster = document.querySelector('.booking-poster');
+    const visual = document.querySelector('.booking-visual');
+    if (poster && visual) {
+      poster.hidden = !posterUrl;
+      visual.classList.toggle('has-event-poster', Boolean(posterUrl));
+      if (posterUrl) {
+        poster.alt = `Afiche de ${selectedEvent.title}`;
+        poster.onerror = () => { poster.hidden = true; visual.classList.remove('has-event-poster'); };
+        if (poster.getAttribute('src') !== posterUrl) poster.src = posterUrl;
+      } else {
+        poster.removeAttribute('src');
+        poster.alt = '';
+      }
+    }
     progressLabel.textContent = state.step <= 5 ? `PASO ${state.step} DE 5` : state.step === 6 ? `ORDEN · ${state.orderRef || 'PAGO'}` : 'ORDEN PENDIENTE';
     progressFill.style.width = `${Math.min(state.step, 5) * 20}%`;
     formHost.innerHTML = state.step === 1 ? dateStep() : state.step === 2 ? profileStep() : state.step === 3 ? cocktailStep() : state.step === 4 ? intentionStep() : state.step === 5 ? reviewStep() : state.step === 6 ? paymentStep() : doneStep();
