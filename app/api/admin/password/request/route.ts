@@ -43,8 +43,12 @@ export async function POST(request: Request) {
       method: "POST", headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from: env.AGAPE_ADMIN_EMAIL_FROM, to: [env.AGAPE_ADMIN_RECOVERY_EMAIL], subject: "Ágape · Recuperar acceso al administrador", html: `<p>Se solicitó cambiar la contraseña del panel Ágape.</p><p><a href="${link.href}">Elegir una nueva contraseña</a></p><p>Este enlace vence en 20 minutos y solo se puede usar una vez. Si no solicitaste el cambio, ignora este mensaje.</p>` }),
     });
-    if (!response.ok) throw new Error("mail unavailable");
-  } catch {
+    if (!response.ok) {
+      console.error(`Resend rejected the admin recovery request: HTTP ${response.status}`);
+      throw new Error("mail unavailable");
+    }
+  } catch (cause) {
+    if (cause instanceof TypeError) console.error("Resend could not be reached for the admin recovery request.");
     await db.prepare("DELETE FROM admin_password_tokens WHERE username = ? AND token_hash = ?").bind(username, tokenHash).run();
     return error("No se pudo enviar el correo. Inténtalo más tarde.", 503);
   }
